@@ -61,7 +61,8 @@ local_settings.py
 db.sqlite3
 db.sqlite3-journal
 .idea
-config.py
+yourmove/yourmove/config.py
+yourmove/competition/config.py
 
 
 # IPython
