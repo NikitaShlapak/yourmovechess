@@ -11,28 +11,16 @@ https://docs.djangoproject.com/en/4.1/ref/settings/
 """
 import os
 from pathlib import Path
+from .config import *
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/4.1/howto/deployment/checklist/
-
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-8mb8@w8hrh-g^h+5#8@m32lu=044yx$n9#f#%@bxv_j4q#=#xm'
-
-LICHESS_DATA = {
-    'master_api_token': 'lip_c3WYH3T3whEZPEkLJJwz',
-    'team_id': 'iate-chess-hampionship-----',
-    'team_password': '123',
-    'swiss_passwords': ('123',),
-    'swiss_ids': ('P1JV3Uzd',),
-}
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['http://127.0.0.1:8000/', '127.0.0.1']
+
 
 # Application definition
 
@@ -78,18 +66,6 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'yourmove.wsgi.application'
 
-# Database
-# https://docs.djangoproject.com/en/4.1/ref/settings/#databases
-
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
-}
-
-# Password validation
-# https://docs.djangoproject.com/en/4.1/ref/settings/#auth-password-validators
 
 AUTH_PASSWORD_VALIDATORS = [
     {
@@ -119,8 +95,7 @@ PASSWORD_HASHERS = [
 
 AUTH_USER_MODEL = 'competition.CustomUser'
 
-# Internationalization
-# https://docs.djangoproject.com/en/4.1/topics/i18n/
+
 
 LANGUAGE_CODE = 'ru'
 
@@ -130,26 +105,9 @@ USE_I18N = True
 
 USE_TZ = True
 
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/4.1/howto/static-files/
 
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'static/')
 STATICFILES_DIRS = [os.path.join(BASE_DIR, "competition/static"),]
-
-# STATIC_URL = 'competition/static/'
-#
-# STATICFILES_DIRS = []
-#
-# STATIC_ROOT = os.path.join(BASE_DIR, "competition/static")
-#
-# STATICFILES_FINDERS = [
-#     'django.contrib.staticfiles.finders.FileSystemFinder',
-#     'django.contrib.staticfiles.finders.AppDirectoriesFinder',
-#
-# ]
-
-# Default primary key field type
-# https://docs.djangoproject.com/en/4.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'

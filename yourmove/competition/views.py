@@ -20,7 +20,8 @@ from competition.forms import *
 from competition.models import *
 from competition.utils import *
 from competition.hashers import PBKDF2WrappedSHA1PasswordHasher
-from yourmove import settings
+# from yourmove import settings
+from yourmove.config import LICHESS_DATA, ALLOWED_HOSTS
 
 login_form = LogInForm()
 
@@ -350,7 +351,7 @@ def lichess_auth(request):
     token_url = lichess_url + '/api/token'
     # print(token_url)
 
-    redir_url = settings.ALLOWED_HOSTS[0] + redirect('lichess_auth').url
+    redir_url = ALLOWED_HOSTS[0] + redirect('lichess_auth').url
 
     token_data = {
         'grant_type': "authorization_code",
@@ -421,9 +422,9 @@ def join_team(request):
         client = utils.BetterTeam(session=session)
 
         message = '12345' * 7
-        password = settings.LICHESS_DATA['team_password']
+        password = LICHESS_DATA['team_password']
 
-        res = client.join(settings.LICHESS_DATA['team_id'], message=message, password=password)
+        res = client.join(LICHESS_DATA['team_id'], message=message, password=password)
         if res['ok']:
             event = {
                 'heading': 'Участник вступил в клуб',
@@ -450,9 +451,9 @@ def join_swiss(request, swiss_num):
         session = berserk.TokenSession(token)
         client = utils.BetterSwiss(session=session)
 
-        password = settings.LICHESS_DATA['swiss_passwords'][swiss_num]
+        password = LICHESS_DATA['swiss_passwords'][swiss_num]
 
-        res = client.join(settings.LICHESS_DATA['swiss_ids'][swiss_num], password=password)
+        res = client.join(LICHESS_DATA['swiss_ids'][swiss_num], password=password)
         # print(res)
         if res['ok']:
             event = {
