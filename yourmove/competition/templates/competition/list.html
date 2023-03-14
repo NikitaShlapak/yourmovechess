@@ -1,0 +1,103 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %} Списки {% endblock %}
+
+{% block content %}
+<div class="container py-3">
+    <table class="table table-primary table-bordered table-hover">
+        <thead>
+            <tr>
+                <th class="align-middle text text-end" scope="col">№</th>
+                <th class="align-middle" scope="col">ФИО</th>
+                <th class="align-middle text text-center" scope="col">Lichess</th>
+                <th class="align-middle text text-center" scope="col">Статус</th>
+                {% if request.user.is_superuser or request.user.is_staff %}
+                <th class="align-middle text text-center">Подтвердить</th>
+                <th class="align-middle text text-center">Дисквалифицировать</th>
+                {% endif %}
+            </tr>
+        </thead>
+        <tbody class="table-group-divider">
+        {% for user in users %}
+
+                <tr>
+                    <th class="align-middle text text-end">{{ user.place }}</th>
+                    <td class="align-middle"><a href="{% url 'profile' user.id %}" class="text-decoration-none text text-dark"><div class="w-100">{{ user.name }}</div> </a></td>
+                    <td class="align-middle text text-center"><a href="https://lichess.org/@/{{ user.lichess }}" class="text-decoration-none text text-dark"><div class="w-100">{{ user.lichess }}</div> </a></td>
+                    <td class="align-middle text text-center">{{ user.status }}</td>
+                    {% if request.user.is_superuser or request.user.is_staff %}
+                     <td class="align-middle text text-center">
+                         {% if user.state == user.States.UNCONFIRMED %}
+                         <a href="#" role="button" class="btn btn-outline-success round"
+                                                         data-bs-toggle="modal" data-bs-target="#ConfirmModal{{ user.id }}">
+                             <div class="round position-relative start-50 top-50 translate-middle">
+                                 <img src="{% static 'yes.svg' %}" class="w-100 position-relative top-50 translate-middle-y" alt="123">
+                             </div>
+                         </a>
+                         {% endif %}
+                     </td>
+                     <td class="align-middle text text-center">
+                         <a href="#" role="button" class="btn btn-outline-danger round"
+                                                        data-bs-toggle="modal" data-bs-target="#BanModal{{ user.id }}">
+                             <div class="round position-relative start-50 top-50 translate-middle" >
+                                 <img src="{% static 'no.svg' %}" class="w-100 position-relative top-50 translate-middle-y" alt="">
+                             </div>
+                         </a>
+                     </td>
+
+                    {% endif %}
+
+           </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+
+
+{% for user in users %}
+
+<!-- Confirm Modal -->
+<div class="modal fade" id="ConfirmModal{{ user.id }}" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h1 class="modal-title fs-5" id="ConfirmModalLabel{{ user.id }}">Подтверждение статуса участника</h1>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p>{{ user.short_name }}. получит приглашение в клуб и сможет принять участие в проекте.</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+        <a role="button" class="btn btn-primary" href="{% url 'confirm' user.id %}">Подтвердить</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
+<!-- Ban Modal -->
+<div class="modal fade" id="BanModal{{ user.id }}" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h1 class="modal-title fs-5" id="BanModalLabel{{ user.id }}">Дисквалификация</h1>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p>Вы уверены, что хотите дисквалифицировать {{ user.short_name }}?</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+        <a role="button" class="btn btn-primary" href="{% url 'ban' user.id %}">Да</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endfor %}
+
+{% endblock %}

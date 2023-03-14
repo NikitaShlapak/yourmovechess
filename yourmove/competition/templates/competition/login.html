@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div  class="container my-3 w-75">
+    <div class="row mb-5 align-items-center">
+        <div class="col-auto"><h1>Вход</h1></div>
+    </div>
+
+     <form action="{% url 'login' %}" method="post">
+
+        {% csrf_token %}
+
+        <div class="container w-75">
+            {{ form.non_field_errors }}
+
+                    {% for field in form %}
+
+                <div class="row my-1 align-items-center">
+                    <div class="col-4">
+                        <label for="{{ field.id_for_label }}" class="form-label">
+                            {{ field.label }}:    </label>
+                    </div>
+                    <div class="col-8">
+                        {{ field }}
+                    </div>
+                </div>
+                <div class="form-text row text-danger">{{ field.errors }}</div>
+
+                    {% endfor %}
+<div class="container w-75 my-2">
+<button type="submit" class="btn btn-primary position-relative start-50 translate-middle-x">Войти</button>
+</div>
+</div>
+
+    </form>
+</div>
+{% endblock %}

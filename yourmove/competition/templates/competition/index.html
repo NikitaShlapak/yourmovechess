@@ -1,0 +1,69 @@
+{% extends 'base.html' %}
+{% load static %}
+
+ {% block title %} Главная {% endblock %}
+
+ {% block content %}
+    <div id="main_slider" class="carousel slide carousel-fade" data-bs-ride="carousel">
+      <div class="carousel-inner">
+        <div class="carousel-item active">
+          <img src="{% static 'competition\images\main\slider\slide1.jpg' %}" class="d-block w-100" alt="...">
+          <div class="carousel-caption d-none d-md-block bg-primary rounded-pill" style="--bs-bg-opacity: .75;">
+            <h5>slide1</h5>
+            <p>Some representative <br><br><br><br><br><br><br><br><br><br> placeholder content for the first slide.</p>
+          </div>
+        </div>
+        <div class="carousel-item">
+          <img src="{% static 'competition\images\main\slider\slide2.jpg' %}" class="d-block w-100" alt="...">
+          <div class="carousel-caption d-none d-md-block bg-primary rounded-pill" style="--bs-bg-opacity: .75;">
+            <h5>slide2</h5>
+            <p>Some representative <br><br><br><br><br><br><br><br><br><br> placeholder content for the first slide.</p>
+          </div>
+        </div>
+        <div class="carousel-item">
+          <img src="{% static 'competition\images\main\slider\slide3.jpg' %}" class="d-block w-100" alt="...">
+          <div class="carousel-caption d-none d-md-block bg-primary rounded-pill" style="--bs-bg-opacity: .75;">
+            <h5>slide3</h5>
+            <p>Some representative <br><br><br><br><br><br><br><br><br><br> placeholder content for the first slide.</p>
+          </div>
+        </div>
+        <div class="carousel-item">
+          <img src="{% static 'competition\images\main\slider\slide4.jpg' %}" class="d-block w-100" alt="...">
+          <div class="carousel-caption d-none d-md-block bg-primary rounded-pill" style="--bs-bg-opacity: .75;">
+            <h5>slide4</h5>
+            <p>Some representative <br><br><br><br><br><br><br><br><br><br> placeholder content for the first slide.</p>
+          </div>
+        </div>
+        <div class="carousel-item">
+          <img src="{% static 'competition\images\main\slider\slide5.jpg' %}" class="d-block w-100" alt="...">
+          <div class="carousel-caption d-none d-md-block bg-primary rounded-pill" style="--bs-bg-opacity: .75;">
+            <h5>slide5</h5>
+            <p>Some representative <br><br><br><br><br><br><br><br><br><br> placeholder content for the first slide.</p>
+          </div>
+        </div>
+      </div>
+      <button class="carousel-control-prev" type="button" data-bs-target="#main_slider" data-bs-slide="prev">
+        <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+        <span class="visually-hidden">Previous</span>
+      </button>
+      <button class="carousel-control-next" type="button" data-bs-target="#main_slider" data-bs-slide="next">
+        <span class="carousel-control-next-icon" aria-hidden="true"></span>
+        <span class="visually-hidden">Next</span>
+      </button>
+    </div>
+
+    <div class="head-text container mt-5">
+      <h1 class="text text-center border-bottom border-top border-3 p-3 border-dark my-3">Что такое Твой ход?</h1>
+      <p class="text">Lorem ipsum dolor sit amet, consectetur adipisicing elit. Amet, dolore doloremque ea eligendi hic id incidunt nisi praesentium quam quasi quo, saepe unde veniam! Accusantium consequatur cumque deserunt eius enim ex id recusandae reprehenderit repudiandae? Delectus placeat, rem! A animi beatae, consequuntur cum est hic ipsam repellendus repudiandae tempore tenetur?</p>
+
+      <div class="container row">
+        <div class="col-lg-6 col-md-12">
+          <a class="btn btn-primary w-50 rounded-pill position-relative top-0 start-50 translate-middle-x my-2" href="{% url 'list' %}" role="button">Просмотреть списки</a>
+        </div>
+        <div class="col-lg-6 col-md-12">
+          <a class="btn btn-primary w-50 rounded-pill position-relative top-0 start-50 translate-middle-x my-2" href="{% url 'register' %}" role="button">Подать заявку</a>
+        </div>
+      </div>
+    </div>
+
+{% endblock %}

@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div  class="container my-3 w-75">
+    <div class="row mb-4 align-items-center">
+        <div class="col-auto"><h1>Вы уверены, что хотите дисквалифицировать участника <i>{{ user.get_short_name }}.</i>? </h1></div>
+    </div>
+
+     <form action="{% url 'ban' id %}" method="post">
+
+        {% csrf_token %}
+
+        <div class="container w-75 p-3 bg-secondary rounded-5 mb-5">
+            {{ form.non_field_errors }}
+
+
+
+                <div class="row my-1 align-items-center">
+                    <div class="col-md-4">
+                        <label for="{{ form.content.id_for_label }}" class="form-label text text-light fs-3 word">
+                            {{ form.content.label }}:    </label>
+                    </div>
+                    <div class="col">
+                        {{ form.content }}
+                    </div>
+                </div>
+                <div class="form-text row text-danger">{{ form.content.errors }}</div>
+
+
+                <div class="row my-1 align-items-center">
+                    <div class="col-md-4 col-sm-9">
+                        <label for="{{ form.hide_name.id_for_label }}" class="form-label text text-light fs-3">
+                            {{ form.hide_name.label }}:    </label>
+                    </div>
+                    <div class="col">
+                        {{ form.hide_name }}
+                    </div>
+                </div>
+                <div class="form-text row text-danger">{{ form.hide_name.errors }}</div>
+
+
+      <div class="container w-100 mt-3 row">
+
+            <a role="button" href="{% url 'main' %}" class="col w-75 mx-2 my-1 btn btn-light">Нет. На главную</a>
+            <button type="submit" class="col mx-2 w-75 btn btn-danger my-1">Да. Дисквалифицировать</button>
+      </div>
+      </div>
+
+    </form>
+</div>
+{% endblock %}

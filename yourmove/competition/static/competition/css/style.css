@@ -1,0 +1,24 @@
+.add_link:hover{
+    background-color: rgba(64, 138, 240,0.1);
+}
+.add_link{
+    border-radius: 30px;
+}
+
+.round {
+    height: 40px;
+    width: 40px;
+    border-radius: 20px;
+}
+
+.word {
+    -moz-hyphens: auto;
+    -webkit-hyphens: auto;
+    -ms-hyphens: auto;
+}
+.chessboard {
+    display:block;
+    width:1500px;
+    height:1500px;
+}
+

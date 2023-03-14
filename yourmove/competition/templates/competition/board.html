@@ -1,0 +1,221 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %} Доска {% endblock %}
+
+{% block content %}
+<style>
+
+ .light { background: #f0d9b5; }
+ .dark { background: #b58863; }
+ .highlighted { }
+ .sq {width:64px;height:64px}
+ #chessboard {width:532px;height:532px;}
+ .piece {top:0px;left:0px;width:100%;height:100%;cursor:grab}
+
+
+</style>
+  <div class="container-fluid pt-4 text-center">
+
+   <div class="row w-100">
+
+       <div class="col-md-2 col-sm-12 border">Панель управления</div>
+
+       <div class="col-md-8 col-sm-12">
+
+         <table class="d-flex mb-3 position-relative start-50 translate-middle-x" id="chessboard">
+
+             {% for line, figs in position %}
+
+
+                <tr>
+                    {% if line != '0' %}
+                    <td><h5 class="me-1"> {{line}} </h5></td>
+                        {% for fig in figs %}
+                    <td class="sq   {% if line|divisibleby:'2' %}
+                            {% cycle 'light' 'dark' %}{% else %}{% cycle 'dark' 'light' %}{% endif %}">
+                            {% if fig != '*' %}
+                        <img class="piece" src="{% static 'board\images' %}/{{fig}}.png" alt="{{fig}}">
+
+                            {% endif %}
+                    </td>
+                        {% endfor %}
+
+                    {% else %}
+
+                     <td></td>
+                      {% for fig in figs %}
+                     <td><h5 class="mt-1">{{ fig }}</h5></td>
+                     {% endfor %}
+                </tr>
+                    {% endif %}
+             {% endfor %}
+
+         </table>
+        </div>
+        <div class="col-md-2 col-sm-12 border">Сводка
+            <br>
+       <span class="border" id="cords">cords</span>
+            <br>
+       <span class="border" id="cords1">cords1</span>
+             <br>
+       <span class="border" id="cords2">cords2</span>
+            </div>
+   </div>
+
+ </div>
+
+<script>
+
+    let span = document.getElementById("cords");
+    let span1 = document.getElementById("cords1");
+    let span2 = document.getElementById("cords2");
+
+    let board = document.getElementById("chessboard")
+
+   
+
+
+
+
+    function getSquare(x, y, reverse){
+    x = Math.floor((x-board.offsetLeft+532/2-20)/64);
+    y = Math.floor((y-board.offsetTop)/64);
+    console.log("X:"+x)
+    console.log("Y:"+y)
+    let ans = "Вне доски";
+    let cords = ["a","b","c","d","e","f","g","h"];
+        if ( y>=0 && x>=0 && y<=7 && x<=7  ) {
+            if (reverse){
+            ans = cords[7-x]+(y+1)
+            } else {
+            ans = cords[x]+(8-y)
+            }
+        }
+    return ans
+    }
+
+let currentPiece = {
+    type:"*",
+    from:[0,0],
+    to:[0,0],
+}
+
+function createAvatar(elem) {
+  // запомнить старые свойства, чтобы вернуться к ним при отмене переноса
+  var avatar = document.createElement("img")
+  avatar.src = elem.src
+  avatar.style.height=avatar.style.width="50px"
+  avatar.style.cursor= "none";
+
+  var old = {
+    parent: elem.parentNode,
+    nextSibling: elem.nextSibling,
+    position: elem.position || '',
+    left: elem.left || '',
+    top: elem.top || '',
+    zIndex: elem.zIndex || ''
+  };
+
+  avatar.style.position = 'absolute';
+  avatar.style.zIndex = 1000;
+  document.body.append(avatar);
+  // функция для отмены переноса
+  avatar.rollback = function() {
+    old.parent.insertBefore(avatar, old.nextSibling);
+    avatar.style.position = old.position;
+    avatar.style.left = old.left;
+    avatar.style.top = old.top;
+    avatar.style.zIndex = old.zIndex
+  };
+
+  avatar.ondragstart = function() {
+      return false;
+    };
+
+  return avatar;
+}
+
+function findDroppable(drop, x, y) {
+  // спрячем переносимый элемент
+  drop.hidden = true;
+  // получить самый вложенный элемент под курсором мыши
+  var elem = document.elementFromPoint(x, y);
+  // показать переносимый элемент обратно
+  drop.hidden = false;
+  if (elem == null) {
+    // такое возможно, если курсор мыши "вылетел" за границу окна
+    return null;
+  }
+  return elem.closest('.sq');
+}
+
+
+document.querySelectorAll(".piece").forEach( (ball) => {
+
+    ball.onmousedown = function(event) {
+
+      let shiftX = event.clientX - ball.getBoundingClientRect().left;
+      let shiftY = event.clientY - ball.getBoundingClientRect().top;
+
+      function moveAt(elem, pageX, pageY) {
+        elem.style.left = pageX - elem.offsetWidth / 2 + 5 +'px';
+        elem.style.top = pageY - elem.offsetHeight /2 + 5 +'px';
+      }
+
+      currentPiece.type = ball.alt;
+      currentPiece.from = [ event.pageX, event.pageY ]
+
+      let avatar = createAvatar(ball)
+
+      avatar.onmouseup = function(event) {
+        document.removeEventListener('mousemove', onMouseMove);
+        avatar.onmouseup = null;
+        let square = findDroppable(avatar, event.clientX, event.clientY)
+        square.classList.remove("bg-primary");
+        if (square.firstElementChild){
+            square.firstElementChild.remove();
+        }
+        square.append(ball);
+        avatar.hidden = "True";
+
+        currentPiece.to = [ event.pageX, event.pageY ]
+        console.log(currentPiece);
+        span.innerText=currentPiece.type
+        span1.innerText=currentPiece.from + " - " + currentPiece.to
+        span2.innerText=getSquare(currentPiece.from[0],currentPiece.from[1]) + " - " + getSquare(currentPiece.to[0], currentPiece.to[1])
+      };
+
+      ball.ondragstart = function() {
+        return false;
+      };
+
+      moveAt(avatar, event.pageX, event.pageY);
+      let step = 5  ;
+      let oldX = event.pageX;
+      let oldY = event.pageY;
+      let sq = findDroppable(avatar, event.pageX, event.pageY)
+      sq.classList.add("bg-primary");
+      let prev_sq = findDroppable(avatar, event.pageX, event.pageY)
+
+      function onMouseMove(event) {
+
+        moveAt(avatar, event.pageX, event.pageY);
+
+        if (Math.abs(oldX-event.pageX)>step ||  Math.abs(oldY-event.pageY)>step){
+
+            sq = findDroppable(avatar, event.pageX, event.pageY)
+            sq.classList.add("bg-primary");
+               if (sq != prev_sq){
+                   prev_sq.classList.remove("bg-primary");
+                   prev_sq = sq;
+                   oldX = event.pageX;
+                   oldY = event.pageY;
+            }
+        }
+      }
+      document.addEventListener('mousemove', onMouseMove);
+    };
+})
+</script>
+{% endblock %}

@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %} Ошибка 403 {% endblock %}
+
+{% block content %}
+
+<div class="card w-50 m-5 position-relative start-50 translate-middle-x">
+    <div class="card-header bg-primary">
+        <h2 class="text text-light">Упс...</h2>
+    </div>
+    <div class="card-body">
+        <h4 class="card-title">
+            Ошибка доступа
+        </h4>
+        <p class="card-text">
+            Кажется, у вас недостаточно прав, чтобы сделать то, что вы пытались. Попробуйте, когда подрастёте.
+        </p>
+    </div>
+    <div class="card-footer bg-primary text text-end">
+        <a href="{% url 'main' %}" class="btn btn-outline-light">Вернуться на главную</a>
+    </div>
+</div>
+
+{% endblock %}

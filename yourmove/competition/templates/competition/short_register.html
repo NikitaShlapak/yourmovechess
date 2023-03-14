@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+{% load static %}
+
+
+
+{% block content %}
+<div  class="container my-3 w-75">
+    <div class="row mb-5 align-items-center">
+        <div class="col-auto"><h1>Регистрация</h1></div>
+    </div>
+    <div class="container">
+        <h3>Ускорьте процесс регистрации</h3>
+        <div class="row">
+            <div class="mb-3">
+                <div class="row align-items-center">
+                    <form action="{% url 'register_short' %}", method="post">
+    {% csrf_token %}
+                    <div class="mb-3">
+                        <div class="row">
+                            <div class="col-auto">
+                                <label for="{{ form.rf_id.id_for_label }}" class="form-label position-relative top-50 translate-middle-y"> {{ form.rf_id.label }}:    </label>
+                            </div>
+                            <div class="col-auto">
+                                {{ form.rf_id }}
+                            </div>
+                            <div class="col-auto">
+                                <p class=" text position-relative top-50 translate-middle-y">
+                                  РШФ id состоит из 3-6 цифр. Его можно узнать в вашем профиле на
+                                    <a href="https://ratings.ruchess.ru/" target="blank">официальном сайте</a>.
+                                </p>
+                            </div>
+                        </div>
+                        <div class="form-text text-danger">{{ form.rf_id.errors }}</div>
+                        <div class="form-text">Регистрируясь с помощью РШФ id Вы можете сэкономить своё и наше время, так как Вам не придётся заполнять некоторые поля, а валидация по рейтингу пройдёт в течении нескольких минут вместо дней.</div>
+                    </div>
+                        {{ form.non_field_errors }}
+                    <button type="submit" class="btn btn-primary">Поиск по РШФ</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+
+
