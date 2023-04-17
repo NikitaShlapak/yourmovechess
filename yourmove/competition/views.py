@@ -21,7 +21,7 @@ from competition.models import *
 from competition.utils import *
 from competition.hashers import PBKDF2WrappedSHA1PasswordHasher
 # from yourmove import settings
-from yourmove.config import LICHESS_DATA, ALLOWED_HOSTS
+
 
 login_form = LogInForm()
 
