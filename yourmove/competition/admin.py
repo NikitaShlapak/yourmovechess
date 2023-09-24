@@ -3,7 +3,7 @@ from .models import *
 
 
 class CustomUserAdmin(admin.ModelAdmin):
-    list_display = ('email', 'last_name', 'first_name', 'b_date', 'region', 'SSK', 'lichess_nick', 'in_streamer_comp',
+    list_display = ('email', 'last_name', 'first_name', 'b_date', 'region', 'SSK', 'lichess_nick', 'in_extra_comp',
                     "state", 'is_banned')
     list_display_links = ('email', 'last_name', "first_name")
     search_fields = ('email', 'last_name', 'first_name', 'SSK', "lichess_nick")

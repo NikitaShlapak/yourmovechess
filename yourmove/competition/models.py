@@ -28,7 +28,8 @@ class UserManager(BaseUserManager):
             email=email, first_name=first_name, last_name=last_name,
             **extra_fields
         )
-        user.set_password(PBKDF2WrappedSHA1PasswordHasher.encode(password))
+        Wrapper = PBKDF2WrappedSHA1PasswordHasher()
+        user.set_password(password)
         user.save(using=self._db)
         return user
 
@@ -52,11 +53,12 @@ class UserManager(BaseUserManager):
 
 
 class CustomUser(AbstractBaseUser, PermissionsMixin):
+    not_plaing = models.BooleanField(default=False)
     email = models.EmailField(unique=True, verbose_name='Почта',
                               error_messages={'unique': "Пользователь с таким адресом электронной почты уже "
                                                         "зарегистрирован"})
 
-    b_date = models.DateField(verbose_name='Дата рождения')
+    b_date = models.DateField(verbose_name='Дата рождения', null=True)
 
     first_name = models.CharField(max_length=20, verbose_name='Имя', null=False)
     last_name = models.CharField(max_length=20, verbose_name='Фамилия', null=False)
@@ -73,10 +75,10 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
         ('ДФО', 'Дальневосточный федеральный округ'),
     ]
 
-    region = models.TextField(choices=regions, verbose_name='Федеральный округ')
+    region = models.TextField(choices=regions, verbose_name='Федеральный округ', null=True)
 
     phoneNumberRegex = RegexValidator(regex=r"^\+?1?\d{8,15}$")
-    phoneNumber = models.CharField(validators=[phoneNumberRegex], max_length=16,
+    phoneNumber = models.CharField(validators=[phoneNumberRegex], max_length=16,null=True,
                                    verbose_name='Номер телефона', error_messages={
             'unique': "Пользователь с таким номером телефона уже зарегистрирован"})
     IDRegex = RegexValidator(regex=r"^\d{,10}$")
@@ -98,10 +100,10 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     rating_blitz = models.CharField(validators=[ratingNumberRegex], max_length=4,
                                     verbose_name='Рейтинг FIDE (блиц)', default=1000)
 
-    city = models.CharField(max_length=30, verbose_name='Город, область')
-    SSK = models.CharField(max_length=30, verbose_name='Название ССК')
-    university = models.TextField(verbose_name='Название учебного заведения')
-    lichess_nick = models.CharField(max_length=20,
+    city = models.CharField(max_length=30, verbose_name='Город, область', null=True)
+    SSK = models.CharField(max_length=30, verbose_name='Название ССК', null=True)
+    university = models.TextField(verbose_name='Название учебного заведения',null=True)
+    lichess_nick = models.CharField(max_length=20,null=True,
                                     verbose_name='Ник на lichess.org')  # https://lichess.org/@/NikitaShlapak
     lichess_token = models.CharField(max_length=512, blank=True, default='')
 
@@ -111,14 +113,11 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
 
         CONFIRMED = 'Проверка пройдена', 'Участник допущен к отборочному этапу'     #250
 
-        STAGE1_ACCEED = 'Этап 1', 'Участник допущен к этапу 1'                      #350
-        STAGE1 = 'Этап 1 (завершён)', 'Участник завершил этап 1'                    #450
+        ACTIVE = 'Отборочный этап', 'Участник принимает участие в отборочных турнирах'                      #350
+        PASSED =  'Отборочный этап (Завершён)','Участник принял участие в отборочных турнирах'
 
-        STAGE2_ACCEED = 'Этап 2', 'Участник допущен к этапу 2'                      #550
-        STAGE2 = 'Этап 2 (завершён)', 'Участник завершил этап 2'                    #650
-
-        STAGE3_ACCEED = 'Этап 3', 'Участник допущен к этапу 3'                      #750
-        STAGE3 = 'Этап 3 (завершён)', 'Участник завершил этап 3'                    #850
+        FINAL_ACCEED = 'Финал', 'Участник допущен к финалу'                      #750
+        FINAL = 'Финал (завершён)', 'Участник завершил фмнальный этап'                    #850
 
         SUPERFINAL = 'Суперфинал', 'Участник приглашён на очный суперфинал'         #950
 
@@ -130,10 +129,10 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
 
     gender = models.TextField(choices=Gender.choices, verbose_name='Пол', default=Gender.M)
 
-    in_streamer_comp = models.BooleanField(default=False, verbose_name='Хочу участвовать в конкурсе стримеров')
+    in_extra_comp = models.BooleanField(default=False, verbose_name='Хочу участвовать в конкурсе по шахматной композиции')
 
     links = models.TextField(verbose_name='Дополнительные ссылки (на профиль в соц. сетях, канал на twitch и т.п.)',
-                             blank=True)
+                             blank=True, null=True)
 
     is_banned = models.BooleanField(default=False, verbose_name='Участник дисквалифицирован')
     is_active = models.BooleanField(default=True)
@@ -184,12 +183,14 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
             resp = 'Заявка отклонена'
         elif self.state == self.States.CONFIRMED:
             resp = 'Заявка принята'
-        elif self.state == self.States.STAGE1:
+        elif self.state == self.States.ACTIVE:
+            resp = 'Принимает участие в отборочных турнирах'
+        elif self.state == self.States.PASSED:
             if self.gender == self.Gender.M:
-                resp = 'Отобран в полуфинал'
+                resp = 'Принял участие в отборочных турнирах'
             else:
-                resp = 'Отобрана в полуфинал'
-        elif self.state == self.States.STAGE2:
+                resp = 'Принял участие в отборочных турнирах'
+        elif self.state == self.States.FINAL_ACCEED:
             if self.gender == self.Gender.M:
                 resp = 'Отобран в финал'
             else:

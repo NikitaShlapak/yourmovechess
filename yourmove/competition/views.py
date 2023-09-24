@@ -1,11 +1,10 @@
 import os
-from hashlib import sha256
 
-import oauthlib.oauth2
 import pkce
 import requests
 import berserk
 import lichess
+from berserk.clients import Teams
 
 from bs4 import BeautifulSoup as bs
 from django.contrib.auth import logout as django_logout
@@ -13,15 +12,15 @@ from django.contrib.auth.views import LoginView
 from django.http import HttpResponse
 from django.shortcuts import render, redirect
 from django.urls import reverse_lazy
-from django.views.generic import *
+
 
 from competition import utils
 from competition.forms import *
 from competition.models import *
 from competition.utils import *
-from competition.hashers import PBKDF2WrappedSHA1PasswordHasher
-# from yourmove import settings
 
+
+from yourmove.config import LICHESS_DATA, ALLOWED_HOSTS
 
 login_form = LogInForm()
 
@@ -73,10 +72,10 @@ def profile(request, user_id):
 
         if user.has_valid_token():
             if user.access_level() > 200:
-                if user.state in [user.States.STAGE1_ACCEED, user.States.STAGE2_ACCEED, user.States.STAGE3_ACCEED]:
+                if user.state not in [user.States.UNCONFIRMED, user.States.REJECTED]:
                     link = redirect('join_swiss', 0).url
                     text = 'Присоединиться к турниру'
-                else:
+                elif user.state == user.States.CONFIRMED :
                     link = redirect('join_team').url
                     text = 'Присоединиться к клубу'
         else:
@@ -109,7 +108,7 @@ def register_long(request):
                     desc1 = Activity.ContentSample.male['reg']
                 else:
                     desc1 = Activity.ContentSample.female['reg']
-                if new_user.in_streamer_comp:
+                if new_user.in_extra_comp:
                     desc2 = 'подана'
                 else:
                     desc2 = 'не подана'
@@ -140,9 +139,9 @@ def register_short(request):
                 # print(resp['last_name'] == request.user.last_name and resp['first_name'] == request.user.first_name)
                 if resp['last_name'] == request.user.last_name and resp['first_name'] == request.user.first_name:
                     user = CustomUser.objects.get(email=request.user.email)
-                    # print(resp['rf_id'])
+                    print(resp)
                     user.rf_id = resp['rf_id']
-
+                    print(resp.get('rf_id'))
                     if resp.get('fide_id'):
                         user.fide_id = resp['fide_id']
 
@@ -164,7 +163,7 @@ def register_short(request):
                     if resp.get('rating_blitz'):
                         user.rating_blitz = resp['rating_blitz']
 
-                    # user.save()
+                    user.save()
                     return redirect('profile', user.pk)
 
                 else:
@@ -195,7 +194,7 @@ def update_with_rcf(id):
         r = requests.get('https://ratings.ruchess.ru/people/' + str(id))
         # print(str(r)=='<Response [200]>', type(r))
         # print(r.head)
-        if str(r) != '<Response [200]>': raise Exception
+        if r.status_code != 200 : raise Exception
         html = bs(r.content, 'html.parser')
         items = html.select("li.list-group-item > b")
         captions = html.select("li.list-group-item > strong > span")
@@ -328,6 +327,27 @@ def confirm(request, user_id):
             }
             # print(event)
             Activity.objects.create(**event)
+            if user.has_valid_token():
+                token = user.lichess_token
+                try:
+                    session = berserk.TokenSession(token)
+                    client = utils.BetterTeam(session=session)
+
+                    message = '12345' * 7
+                    password = LICHESS_DATA['team_password']
+
+                    res = client.join(LICHESS_DATA['team_id'], message=message, password=password)
+                    if res['ok']:
+                        master_session = berserk.TokenSession(LICHESS_DATA['master_token'])
+                        joined_res = master_session.post(
+                            f'https://lichess.org/api/team/{LICHESS_DATA["team_id"]}/request/{user.lichess_nick.lower()}/accept')
+                        if joined_res.status_code == 200:
+                            return join_swiss(request, 0)
+                        return join_swiss(request, 0)
+                except:
+                    return HttpResponse(
+                        'Ошибка добавления в клуб. Попробуйсте снова. Если проблема не исчезнет, обратитесь в техподдержку')
+
         return redirect('main')
     else:
         return redirect('403')
@@ -351,7 +371,7 @@ def lichess_auth(request):
     token_url = lichess_url + '/api/token'
     # print(token_url)
 
-    redir_url = ALLOWED_HOSTS[0] + redirect('lichess_auth').url
+    redir_url =  ALLOWED_HOSTS[-1] + redirect('lichess_auth').url
 
     token_data = {
         'grant_type': "authorization_code",
@@ -401,10 +421,10 @@ def form_log_in_with_lichess_link():
 
     code_verifier, code_challenge = pkce.generate_pkce_pair()
 
-    redir_url = settings.ALLOWED_HOSTS[0] + redirect('lichess_auth').url
+    redir_url =  ALLOWED_HOSTS[-1] + redirect('lichess_auth').url
     token_data = {'response_type': 'code',
                   'redirect_uri': redir_url,
-                  'scope': 'team:write email:read challenge:read challenge:write msg:write tournament:write',
+                  'scope': 'team:write email:read challenge:read challenge:write tournament:write',
                   'code_challenge_method': 'S256',
                   'code_challenge': code_challenge,
                   'client_id': 'yourmovechessid',
@@ -426,20 +446,15 @@ def join_team(request):
 
         res = client.join(LICHESS_DATA['team_id'], message=message, password=password)
         if res['ok']:
-            event = {
-                'heading': 'Участник вступил в клуб',
-                'content': user.get_full_name() + ' Подтвердил свой статус участника отборочного этапа ещё раз. Удачи в турнирах!',
-                'type': Activity.Types.PROMOTED,
-                'user': user
-            }
-
-            Activity.objects.create(**event)
-
-            user.state = user.States.STAGE1_ACCEED
-            user.save()
+            master_session = berserk.TokenSession(LICHESS_DATA['master_token'])
+            joined_res = master_session.post(f'https://lichess.org/api/team/{LICHESS_DATA["team_id"]}/request/{user.lichess_nick.lower()}/accept')
+            if joined_res.status_code == 200:
+                return join_swiss(request,0)
+            else:
+                raise Exception
     except:
         return HttpResponse(
-            'Ошибка добавления в клуб. Попробуйсте снова. Если проблема не исчезнет, обратитесь в техпоодержку')
+            'Ошибка добавления в клуб. Попробуйсте снова. Если проблема не исчезнет, обратитесь в техподдержку')
 
     return redirect('profile', user.pk)
 
@@ -451,11 +466,10 @@ def join_swiss(request, swiss_num):
         session = berserk.TokenSession(token)
         client = utils.BetterSwiss(session=session)
 
-        password = LICHESS_DATA['swiss_passwords'][swiss_num]
 
-        res = client.join(LICHESS_DATA['swiss_ids'][swiss_num], password=password)
+        res = [client.join(swiss) for swiss in LICHESS_DATA['swiss_ids']]
         # print(res)
-        if res['ok']:
+        if res[0]['ok'] or res[1]['ok'] or res[2]['ok'] or res[3]['ok'] :
             event = {
                 'heading': 'Участник присоединился к турниру',
                 'content': user.get_full_name() + ' Включился в борьбу',
@@ -465,11 +479,11 @@ def join_swiss(request, swiss_num):
 
             Activity.objects.create(**event)
 
-            user.state = user.States.STAGE1
+            user.state = user.States.ACTIVE
             user.save()
     except:
         return HttpResponse(
-            'Ошибка добавления в клуб. Попробуйсте снова. Если проблема не исчезнет, обратитесь в техпоодержку')
+            'Ошибка добавления в Турниры. Попробуйсте снова. Если проблема не исчезнет, обратитесь в техподдержку')
     # return HttpResponse('OK')
     return redirect('profile', user.pk)
 
