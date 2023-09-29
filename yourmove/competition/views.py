@@ -7,7 +7,7 @@ import lichess
 from berserk.clients import Teams
 
 from bs4 import BeautifulSoup as bs
-from django.contrib.auth import logout as django_logout
+from django.contrib.auth import logout as django_logout, login
 from django.contrib.auth.views import LoginView
 from django.http import HttpResponse
 from django.shortcuts import render, redirect
@@ -113,17 +113,19 @@ def register_long(request):
                 else:
                     desc2 = 'не подана'
                 # print(new_user.pk)
+            except:
+                form.add_error(None, 'Error')
+            else:
                 event = {
                     'heading': 'Регистрация пользователя',
-                    'content': new_user.get_full_name() + desc1 + '\nЗаявка на конкурс стримеров ' + desc2 + '.\n',
+                    'content': new_user.get_full_name() + desc1 + '\nЗаявка на конкурс по шахматной композиции ' + desc2 + '.\n',
                     'type': Activity.Types.OTHER,
                     'user': new_user
                 }
                 # print(event)
                 Activity.objects.create(**event)
+                login(request=request, user=new_user)
                 return redirect('register_short')
-            except:
-                form.add_error(None, 'Error')
     else:
         form = FullRegisterForm()
     return render(request, 'competition/register.html', context={'form': form})
@@ -136,7 +138,7 @@ def register_short(request):
             suc, resp = update_with_rcf(form.cleaned_data['rf_id'])
             # print(resp)
             if suc:
-                # print(resp['last_name'] == request.user.last_name and resp['first_name'] == request.user.first_name)
+                print(resp['last_name'] == request.user.last_name and resp['first_name'] == request.user.first_name)
                 if resp['last_name'] == request.user.last_name and resp['first_name'] == request.user.first_name:
                     user = CustomUser.objects.get(email=request.user.email)
                     print(resp)
@@ -250,7 +252,7 @@ def update_with_rcf(id):
 
 
 def disp_list(request):
-    all_users = CustomUser.objects.filter(is_banned=False, is_active=True).order_by('pk')
+    all_users = CustomUser.objects.filter(is_banned=False, is_active=True, not_plaing=False).order_by('pk')
     users = []
     for i in range(len(all_users)):
         users.append({
