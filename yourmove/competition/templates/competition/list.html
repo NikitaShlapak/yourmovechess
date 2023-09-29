@@ -22,10 +22,17 @@
         {% for user in users %}
 
                 <tr>
-                    <th class="align-middle text text-end">{{ user.place }}</th>
-                    <td class="align-middle"><a href="{% url 'profile' user.id %}" class="text-decoration-none text text-dark"><div class="w-100">{{ user.name }}</div> </a></td>
-                    <td class="align-middle text text-center"><a href="https://lichess.org/@/{{ user.lichess }}" class="text-decoration-none text text-dark"><div class="w-100">{{ user.lichess }}</div> </a></td>
-                    <td class="align-middle text text-center">{{ user.status }}</td>
+                    <th class="align-middle text text-end">{{ forloop.counter }}</th>
+                    <td class="align-middle"><a href="{% url 'profile' user.id %}" class="text-decoration-none text text-dark"><div class="w-100">{{ user.get_full_name }}</div> </a></td>
+                    <td class="align-middle"><div class="d-flex justify-content-center"><a href="https://lichess.org/@/{{ user.lichess }}" class="text-decoration-none text text-dark"><div class="w-100">{{ user.lichess_nick }}</div> </a>{% if user.has_valid_token %}
+                      <span class="d-inline-block" data-bs-toggle="tooltip" style="border-radius:12px;height:24px"
+                                                          data-bs-title="Учётная запись lichess.org подтверждена">
+                          <img src="{% static 'yes.svg' %}" width="24" alt="123" class="position-relative start-50 top-50 translate-middle">
+                      </span>
+
+                      {% endif %}</div>
+                    </td>
+                    <td class="align-middle text text-center">{{ user.state }}</td>
                     {% if request.user.is_superuser or request.user.is_staff %}
                      <td class="align-middle text text-center">
                          {% if user.state == user.States.UNCONFIRMED %}

@@ -1,3 +1,4 @@
+import logging
 import os
 
 import pkce
@@ -22,6 +23,8 @@ from competition.utils import *
 
 from yourmove.config import LICHESS_DATA, ALLOWED_HOSTS
 
+logging.basicConfig(level=logging.INFO, filename="views.log",filemode="a",
+                    format="%(asctime)s %(levelname)s %(message)s")
 login_form = LogInForm()
 
 
@@ -253,21 +256,10 @@ def update_with_rcf(id):
 
 def disp_list(request):
     all_users = CustomUser.objects.filter(is_banned=False, is_active=True, not_plaing=False).order_by('pk')
-    users = []
-    for i in range(len(all_users)):
-        users.append({
-            'id': all_users[i].pk,
-            'place': i + 1,
-            'name': all_users[i].get_full_name(),
-            'short_name': all_users[i].get_short_name(),
-            'status': all_users[i].ru_status(),
-            'state': all_users[i].state,
-            'States': all_users[i].States,
-            'lichess': all_users[i].lichess_nick
-        })
+
     data = {
         'login_form': login_form,
-        'users': users
+        'users': all_users
     }
     return render(request, 'competition/list.html', context=data)
 
@@ -392,29 +384,32 @@ def lichess_auth(request):
     except:
         return HttpResponse(
             'Ошибка получения токена. Попробуйсте снова. Если проблема не исчезнет, обратитесь в техпоодержку')
-
+    else:
+        logging.info(f"Successfully created token. User - {request.user}. Saving...")
+    user = request.user
     try:
-        user = request.user
         user.lichess_token = token
+        logging.info(f"Initiating token session...")
         session = berserk.TokenSession(token)
         client = berserk.Client(session=session)
+        logging.info(f"Getting user nickname...")
         user.lichess_nick = client.account.get()['username']
+        logging.info(f"Saving changes...")
         user.save()
-
+        logging.info(f"Done!")
+    except:
+        return HttpResponse(
+            'Ошибка добавления записи в базу данных. Попробуйсте снова. Если проблема не исчезнет, обратитесь в '
+            'техпоодержку')
+    else:
         event = {
             'heading': 'Участник подтвердил аккаунт liches.org',
             'content': user.get_full_name() + ' Подтвердил свой аккаунт и статус участника отборочного этапа. ',
             'type': Activity.Types.PROMOTED,
             'user': user
         }
-
         Activity.objects.create(**event)
-
         return redirect('profile', user.pk)
-    except:
-        return HttpResponse(
-            'Ошибка добавления записи в базу данных. Попробуйсте снова. Если проблема не исчезнет, обратитесь в '
-            'техпоодержку')
 
 
 def form_log_in_with_lichess_link():
