@@ -251,9 +251,10 @@ class RangedListView(ListView):
     model = CustomUser
     template_name = 'competition/list.html'
     context_object_name = 'users'
+    paginate_by = 100
 
     def get_queryset(self):
-        return self.model.objects.filter(is_banned=False, is_active=True, not_plaing=False).order_by('pk')
+        return self.model.objects.filter(is_banned=False, is_active=True, not_plaing=False).order_by('place')
 
     def get_context_data(self, *args, **kwargs):
         return super().get_context_data(*args, **kwargs)|{'login_form': login_form}

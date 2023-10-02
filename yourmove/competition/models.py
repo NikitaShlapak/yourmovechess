@@ -129,6 +129,11 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
         F = 'Female', 'Женский'
 
     gender = models.TextField(choices=Gender.choices, verbose_name='Пол', default=Gender.M)
+    place = models.IntegerField(default=0)
+    res1 = models.FloatField(default=0.)
+    res2 = models.FloatField(default=0)
+    tb1 = models.FloatField(default=0)
+    tb2 = models.FloatField(default=0)
 
     in_extra_comp = models.BooleanField(default=False, verbose_name='Хочу участвовать в конкурсе по шахматной композиции')
 

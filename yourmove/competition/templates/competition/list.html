@@ -4,7 +4,21 @@
 {% block title %} Списки {% endblock %}
 
 {% block content %}
+
+
 <div class="container py-3">
+
+    {% if page_obj %}
+    <div class="w-100 mb-3">
+        <div class="w-50 text-center p-0 m-0">
+
+          <p class="m-1">Страница {{ page_obj.number }} из {{ page_obj.paginator.num_pages }}</p>
+
+        </div>
+          {% include 'competition/fragments/paginator.html' %}
+    </div>
+    {% endif %}
+
     <table class="table table-primary table-bordered table-hover">
         <thead>
             <tr>
@@ -22,15 +36,23 @@
         {% for user in users %}
 
                 <tr>
-                    <th class="align-middle text text-end">{{ forloop.counter }}</th>
-                    <td class="align-middle"><a href="{% url 'profile' user.id %}" class="text-decoration-none text text-dark"><div class="w-100">{{ user.get_full_name }}</div> </a></td>
-                    <td class="align-middle"><div class="d-flex justify-content-center"><a href="https://lichess.org/@/{{ user.lichess_nick }}" class="text-decoration-none text text-dark"><div class="w-100">{{ user.lichess_nick }}</div> </a>{% if user.has_valid_token %}
+                    <th class="align-middle text text-end">{{ user.place }}</th>
+                    <td class="align-middle"><a href="{% url 'profile' user.id %}" class="text-decoration-none text text-dark"><div class="w-100 {% if user.get_max_rating >= 2300 %} text-danger {% endif %} ">{{ user.get_full_name }}</div> </a>
+                        {% if user.rf_id %}
+                      <span class="d-inline-block" data-bs-toggle="tooltip" style="border-radius:12px;height:24px"
+                                                          data-bs-title="Рейтинг подтверждён через сайт ФШР">
+                          <img src="{% static 'yes.svg' %}" width="24" alt="123" class="position-relative start-50 top-50 translate-middle">
+                      </span>
+                      {% endif %}
+                    </td>
+                    <td class="align-middle"><div class="d-flex justify-content-center"><a href="https://lichess.org/@/{{ user.lichess_nick }}" class="text-decoration-none text text-dark"><div class="w-100">{{ user.lichess_nick }}</div> </a>
+                        {% if user.has_valid_token %}
                       <span class="d-inline-block" data-bs-toggle="tooltip" style="border-radius:12px;height:24px"
                                                           data-bs-title="Учётная запись lichess.org подтверждена">
                           <img src="{% static 'yes.svg' %}" width="24" alt="123" class="position-relative start-50 top-50 translate-middle">
                       </span>
-
-                      {% endif %}</div>
+                      {% endif %}
+                        </div>
                     </td>
                     <td class="align-middle text text-center">{{ user.state }}</td>
                     {% if request.user.is_superuser or request.user.is_staff %}
