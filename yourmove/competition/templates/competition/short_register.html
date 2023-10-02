@@ -34,8 +34,10 @@
                         <div class="form-text">Регистрируясь с помощью РШФ id Вы можете сэкономить своё и наше время, так как Вам не придётся заполнять некоторые поля, а валидация по рейтингу пройдёт в течении нескольких минут вместо дней.</div>
                     </div>
                         {{ form.non_field_errors }}
-                    <button type="submit" class="btn btn-primary">Поиск по РШФ</button>
+                    <button type="submit" class="btn btn-outline-primary">Поиск по РШФ</button>
+                    <a role="button" href="{% url 'profile' request.user.pk %}" class="btn btn-outline-success mx-2">Пропустить и перейти в личный кабинет</a>
                     </form>
+
                 </div>
             </div>
         </div>

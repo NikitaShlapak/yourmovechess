@@ -9,11 +9,13 @@ from berserk.clients import Teams
 
 from bs4 import BeautifulSoup as bs
 from django.contrib.auth import logout as django_logout, login
+from django.contrib.auth.decorators import login_required
 from django.contrib.auth.views import LoginView
 from django.http import HttpResponse
 from django.shortcuts import render, redirect
 from django.urls import reverse_lazy
-
+from django.utils.safestring import mark_safe
+from django.views.generic import ListView
 
 from competition import utils
 from competition.forms import *
@@ -23,14 +25,13 @@ from competition.utils import *
 
 from yourmove.config import LICHESS_DATA, ALLOWED_HOSTS
 
-logging.basicConfig(level=logging.INFO, filename="views.log",filemode="a",
+logging.basicConfig(level=logging.INFO, filename="logs/views.log",filemode="a",
                     format="%(asctime)s %(levelname)s %(message)s")
 login_form = LogInForm()
 
 
 def page_not_found_view(request, exception):
     return render(request, '404.html', status=404)
-
 
 def index(request):
     return render(request, 'competition/index.html', context={'login_form': login_form})
@@ -46,7 +47,6 @@ def profile(request, user_id):
         state['color'] = 'text-success'
     else:
         state['color'] = 'text-primary'
-    # print(request.user.pk)
     if request.user.is_authenticated and request.user.pk == user_id:
         log = True
     else:
@@ -61,14 +61,8 @@ def profile(request, user_id):
         'user': user,
         'my_profile': request.user == user,
         'state': state,
-
         'acts': acts,
-        # 'lichess_link': form_log_in_with_lichess_link(),
-        # 'lichess_text':
     }
-
-    # print(user.has_valid_token())
-    # print(user.access_level())
     if request.user == user:
         link = ''
         text = ''
@@ -82,7 +76,7 @@ def profile(request, user_id):
                     link = redirect('join_team').url
                     text = 'Присоединиться к клубу'
         else:
-            link = form_log_in_with_lichess_link()
+            link = redirect('lichess_auth').url
             text = 'Подтверждение аккаунта на lichess.org'
 
         data['lichess_link'], data['lichess_text'] = link, text
@@ -101,7 +95,6 @@ def register_long(request):
         form = FullRegisterForm(data=request.POST)
         if form.is_valid():
             user = form.cleaned_data
-            # print(user['password'])
             try:
                 new_user = CustomUser.objects.create(**user)
                 new_user.set_password(new_user.password)
@@ -125,8 +118,10 @@ def register_long(request):
                     'type': Activity.Types.OTHER,
                     'user': new_user
                 }
-                # print(event)
                 Activity.objects.create(**event)
+                new_user.email_user(subject=f"Регистрация на сайте yourmovechess.ru", message=f"Поздравляем с успешной регистрацией! "
+                                                                                          f"Вы можете посетить свой личный кабинет: {new_user.get_absolute_url()} чтобы подтвердить свой рейтинг и прикрепить аккаунт на lichess.org. "
+                                                                                          f"Это значительно ускорит проверку и автоматически добавит вас в клуб и турниры!")
                 login(request=request, user=new_user)
                 return redirect('register_short')
     else:
@@ -197,8 +192,6 @@ def logout(request):
 def update_with_rcf(id):
     try:
         r = requests.get('https://ratings.ruchess.ru/people/' + str(id))
-        # print(str(r)=='<Response [200]>', type(r))
-        # print(r.head)
         if r.status_code != 200 : raise Exception
         html = bs(r.content, 'html.parser')
         items = html.select("li.list-group-item > b")
@@ -249,19 +242,22 @@ def update_with_rcf(id):
         data['middle_name'] = name_arr[2].replace(' ', '').capitalize()
         if len(strs): data['fide_id'] = fide_id
         return True, data
-
     except:
         return False, 'Игрок с таким ФШР id не найден '
 
 
-def disp_list(request):
-    all_users = CustomUser.objects.filter(is_banned=False, is_active=True, not_plaing=False).order_by('pk')
 
-    data = {
-        'login_form': login_form,
-        'users': all_users
-    }
-    return render(request, 'competition/list.html', context=data)
+class RangedListView(ListView):
+    model = CustomUser
+    template_name = 'competition/list.html'
+    context_object_name = 'users'
+
+    def get_queryset(self):
+        return self.model.objects.filter(is_banned=False, is_active=True, not_plaing=False).order_by('pk')
+
+    def get_context_data(self, *args, **kwargs):
+        return super().get_context_data(*args, **kwargs)|{'login_form': login_form}
+
 
 
 def ban(request, user_id):
@@ -290,6 +286,7 @@ def ban(request, user_id):
                 }
                 # print(event)
                 Activity.objects.create(**event)
+                user.email_user(subject=f"Изменение статуса заявки", message=f"Вы были дисквалифицированы {content}")
                 return redirect('main')
         else:
             form = BanForm()
@@ -306,7 +303,7 @@ def ban(request, user_id):
 def Forbidden(request):
     return render(request, 'competition/aden.html')
 
-
+@login_required()
 def confirm(request, user_id):
     if request.user.is_authenticated and (request.user.is_superuser or request.user.is_staff):
         user = CustomUser.objects.get(pk=user_id)
@@ -321,6 +318,10 @@ def confirm(request, user_id):
             }
             # print(event)
             Activity.objects.create(**event)
+            user.email_user(subject=f"Изменение статуса заявки", message=f"Поздравляем, ваша заявка была одобрена!"
+                                                                         f"Проверьте свой аккаунт на lichess.org (https://lichess.org/@/{user.lichess_nick})."
+                                                                         f"Если система не добавила вас в клуб (https://lichess.org/team/KZOBTBjG) автоматически, подайте, пожалуйста заявку самостоятельно."
+                                                                         f"Пароль - ObninskForever")
             if user.has_valid_token():
                 token = user.lichess_token
                 try:
@@ -355,61 +356,64 @@ def confirm(request, user_id):
 #
 #    return render(request, 'api_test.html', context=data)
 
-
+@login_required()
 def lichess_auth(request):
-    code = request.GET['code'].replace(' ', '')
-    ver = request.GET['state'].replace(' ', '')
-    # print(code)
-    # print(ver)
-    lichess_url = os.getenv("LICHESS_HOST", "https://lichess.org")
-    token_url = lichess_url + '/api/token'
-    # print(token_url)
+    if request.GET:
+        code = request.GET['code'].replace(' ', '')
+        ver = request.GET['state'].replace(' ', '')
+        user = request.user
+        lichess_url = os.getenv("LICHESS_HOST", "https://lichess.org")
+        token_url = lichess_url + '/api/token'
 
-    redir_url =  ALLOWED_HOSTS[-1] + redirect('lichess_auth').url
+        redir_url =  ALLOWED_HOSTS[-1] + redirect('lichess_auth').url
 
-    token_data = {
-        'grant_type': "authorization_code",
-        'code': code,
-        'redirect_uri': redir_url,
-        'code_verifier': ver,
-        'client_id': "yourmovechessid",
-        'client_secret': "yourmovechessid"
-    }
-
-    try:
-        req = requests.post(url=token_url, data=token_data,
-                            headers={'content-type': 'application/x-www-form-urlencoded'})
-        # print(req.status_code)
-        token = req.json()['access_token']
-    except:
-        return HttpResponse(
-            'Ошибка получения токена. Попробуйсте снова. Если проблема не исчезнет, обратитесь в техпоодержку')
-    else:
-        logging.info(f"Successfully created token. User - {request.user}. Saving...")
-    user = request.user
-    try:
-        user.lichess_token = token
-        logging.info(f"Initiating token session...")
-        session = berserk.TokenSession(token)
-        client = berserk.Client(session=session)
-        logging.info(f"Getting user nickname...")
-        user.lichess_nick = client.account.get()['username']
-        logging.info(f"Saving changes...")
-        user.save()
-        logging.info(f"Done!")
-    except:
-        return HttpResponse(
-            'Ошибка добавления записи в базу данных. Попробуйсте снова. Если проблема не исчезнет, обратитесь в '
-            'техпоодержку')
-    else:
-        event = {
-            'heading': 'Участник подтвердил аккаунт liches.org',
-            'content': user.get_full_name() + ' Подтвердил свой аккаунт и статус участника отборочного этапа. ',
-            'type': Activity.Types.PROMOTED,
-            'user': user
+        token_data = {
+            'grant_type': "authorization_code",
+            'code': code,
+            'redirect_uri': redir_url,
+            'code_verifier': ver,
+            'client_id': "yourmovechessid",
+            'client_secret': "yourmovechessid"
         }
-        Activity.objects.create(**event)
-        return redirect('profile', user.pk)
+
+        try:
+            req = requests.post(url=token_url, data=token_data,
+                                headers={'content-type': 'application/x-www-form-urlencoded'})
+            token = req.json()['access_token']
+        except:
+            return HttpResponse(
+                'Ошибка получения токена. Попробуйсте снова. Если проблема не исчезнет, обратитесь в техпоодержку')
+        else:
+            logging.info(f"Successfully created token. User - {request.user}. Saving...")
+
+        try:
+            user.lichess_token = token
+            logging.info(f"Initiating token session...")
+            session = berserk.TokenSession(token)
+            client = berserk.Client(session=session)
+            logging.info(f"Getting user nickname...")
+            user.lichess_nick = client.account.get()['username']
+            logging.info(f"Saving changes...")
+            user.save()
+            logging.info(f"Done!")
+        except:
+            return mark_safe(HttpResponse(
+                f'Ошибка добавления записи в базу данных. Попробуйсте снова. Если проблема не исчезнет, обратитесь в '
+                f'техпоодержку и сообщите следующие данные:<br> {user=}<br>{request=}<br> {token=}<br> {session=}<br> {client=}'))
+        else:
+            event = {
+                'heading': 'Участник подтвердил аккаунт liches.org',
+                'content': user.get_full_name() + ' Подтвердил свой аккаунт и статус участника отборочного этапа. ',
+                'type': Activity.Types.PROMOTED,
+                'user': user
+            }
+            Activity.objects.create(**event)
+            user.email_user(subject=f"Подтверждение аккаунта lichess.org", message=f"Ваш аккаунт {user.lichess_nick} был успешно подтверждён!"
+                                                                                   f"Когда ваша заявка будет одобрена, вы автоматически будете добавлены в клуб и турниры.")
+            return redirect('profile', user.pk)
+    else:
+        return redirect(requests.get(form_log_in_with_lichess_link()).url)
+
 
 
 def form_log_in_with_lichess_link():
@@ -425,7 +429,7 @@ def form_log_in_with_lichess_link():
                   'code_challenge_method': 'S256',
                   'code_challenge': code_challenge,
                   'client_id': 'yourmovechessid',
-                  'state': code_verifier
+                  'state': code_verifier,
                   }
     req = requests.get(url=url, params=token_data)
     return req.url
@@ -463,9 +467,8 @@ def join_swiss(request, swiss_num):
         session = berserk.TokenSession(token)
         client = utils.BetterSwiss(session=session)
 
-
         res = [client.join(swiss) for swiss in LICHESS_DATA['swiss_ids']]
-        # print(res)
+
         if res[0]['ok'] or res[1]['ok'] or res[2]['ok'] or res[3]['ok'] :
             event = {
                 'heading': 'Участник присоединился к турниру',
@@ -475,13 +478,11 @@ def join_swiss(request, swiss_num):
             }
 
             Activity.objects.create(**event)
-
             user.state = user.States.ACTIVE
             user.save()
     except:
         return HttpResponse(
             'Ошибка добавления в Турниры. Попробуйсте снова. Если проблема не исчезнет, обратитесь в техподдержку')
-    # return HttpResponse('OK')
     return redirect('profile', user.pk)
 
 

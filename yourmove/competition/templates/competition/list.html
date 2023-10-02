@@ -24,7 +24,7 @@
                 <tr>
                     <th class="align-middle text text-end">{{ forloop.counter }}</th>
                     <td class="align-middle"><a href="{% url 'profile' user.id %}" class="text-decoration-none text text-dark"><div class="w-100">{{ user.get_full_name }}</div> </a></td>
-                    <td class="align-middle"><div class="d-flex justify-content-center"><a href="https://lichess.org/@/{{ user.lichess }}" class="text-decoration-none text text-dark"><div class="w-100">{{ user.lichess_nick }}</div> </a>{% if user.has_valid_token %}
+                    <td class="align-middle"><div class="d-flex justify-content-center"><a href="https://lichess.org/@/{{ user.lichess_nick }}" class="text-decoration-none text text-dark"><div class="w-100">{{ user.lichess_nick }}</div> </a>{% if user.has_valid_token %}
                       <span class="d-inline-block" data-bs-toggle="tooltip" style="border-radius:12px;height:24px"
                                                           data-bs-title="Учётная запись lichess.org подтверждена">
                           <img src="{% static 'yes.svg' %}" width="24" alt="123" class="position-relative start-50 top-50 translate-middle">
@@ -61,7 +61,7 @@
     </table>
 </div>
 
-
+{% if request.user.is_superuser %}
 
 {% for user in users %}
 
@@ -74,7 +74,7 @@
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body">
-        <p>{{ user.short_name }}. получит приглашение в клуб и сможет принять участие в проекте.</p>
+        <p>{{ user.get_short_name }}. получит приглашение в клуб и сможет принять участие в проекте.</p>
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
@@ -95,7 +95,7 @@
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body">
-        <p>Вы уверены, что хотите дисквалифицировать {{ user.short_name }}?</p>
+        <p>Вы уверены, что хотите дисквалифицировать {{ user.get_short_name }}?</p>
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
@@ -106,5 +106,5 @@
 </div>
 
 {% endfor %}
-
+{% endif %}
 {% endblock %}
