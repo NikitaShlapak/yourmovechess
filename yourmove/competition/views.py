@@ -15,7 +15,8 @@ from django.http import HttpResponse
 from django.shortcuts import render, redirect
 from django.urls import reverse_lazy
 from django.utils.safestring import mark_safe
-from django.views.generic import ListView
+from django.views.generic import ListView, FormView
+from django.views.generic.edit import FormMixin
 
 from competition import utils
 from competition.forms import *
@@ -99,6 +100,9 @@ def register_long(request):
                 new_user = CustomUser.objects.create(**user)
                 new_user.set_password(new_user.password)
                 new_user.save(update_fields=['password', ])
+                if new_user.middle_name:
+                    if new_user.middle_name.endswith('a'):
+                        new_user.gender = CustomUser.Gender.F
                 # print(new_user.pk)
                 if new_user.gender == CustomUser.Gender.M:
                     desc1 = Activity.ContentSample.male['reg']
@@ -108,7 +112,7 @@ def register_long(request):
                     desc2 = 'подана'
                 else:
                     desc2 = 'не подана'
-                # print(new_user.pk)
+
             except:
                 form.add_error(None, 'Error')
             else:
@@ -120,7 +124,7 @@ def register_long(request):
                 }
                 Activity.objects.create(**event)
                 new_user.email_user(subject=f"Регистрация на сайте yourmovechess.ru", message=f"Поздравляем с успешной регистрацией! "
-                                                                                          f"Вы можете посетить свой личный кабинет: {new_user.get_absolute_url()} чтобы подтвердить свой рейтинг и прикрепить аккаунт на lichess.org. "
+                                                                                          f"Вы можете посетить свой личный кабинет: {ALLOWED_HOSTS[-1]}{new_user.get_absolute_url()} чтобы подтвердить свой рейтинг и прикрепить аккаунт на lichess.org. "
                                                                                           f"Это значительно ускорит проверку и автоматически добавит вас в клуб и турниры!")
                 login(request=request, user=new_user)
                 return redirect('register_short')
@@ -134,14 +138,14 @@ def register_short(request):
         form = RegByIDForm(data=request.POST)
         if form.is_valid():
             suc, resp = update_with_rcf(form.cleaned_data['rf_id'])
-            # print(resp)
+
             if suc:
-                print(resp['last_name'] == request.user.last_name and resp['first_name'] == request.user.first_name)
-                if resp['last_name'] == request.user.last_name and resp['first_name'] == request.user.first_name:
+
+                if resp['last_name'] == format_string(request.user.last_name) and resp['first_name'] == format_string(request.user.first_name):
                     user = CustomUser.objects.get(email=request.user.email)
-                    print(resp)
+
                     user.rf_id = resp['rf_id']
-                    print(resp.get('rf_id'))
+
                     if resp.get('fide_id'):
                         user.fide_id = resp['fide_id']
 
@@ -200,9 +204,8 @@ def update_with_rcf(id):
         strs = html.select("li.list-group-item > span")
 
         name_full = name_full[1 + name_full.find('>'):name_full[1:].find('<')].replace('\n', '')
-        # print(name_full)
+        name_full = format_string(name_full)
         name_arr = name_full.split(' ', maxsplit=2)
-        # print(name_arr)
 
         caps = []
         for el in captions:
@@ -247,17 +250,66 @@ def update_with_rcf(id):
 
 
 
-class RangedListView(ListView):
+class RangedListView(FormMixin,ListView):
     model = CustomUser
     template_name = 'competition/list.html'
     context_object_name = 'users'
-    paginate_by = 100
+    paginate_by = 20
+    form_class = FilterListForm
+
+    def get_success_url(self):
+        return reverse_lazy('list')
+    def get_queryset(self):
+        def_filter = dict(is_banned=False, is_active=True, not_plaing=False)
+        filter = def_filter | {}
+        exclude = {}
+        if self.request.GET:
+            data = dict(self.request.GET)
+            for field in data.keys():
+
+                if data[field][-1] != 'Не важно':
+                    if field == 'states':
+                        filter = filter | {'state':data[field][-1]}
+                    elif field == 'rating':
+                        print(data[field][-1], FilterListForm.RatingChoises.CONFIRMED, data[field][-1] == FilterListForm.RatingChoises.CONFIRMED)
+                        if data[field][-1] == FilterListForm.RatingChoises.CONFIRMED:
+                            filter = filter | {'rf_id__isnull':False}
+                        else:
+                            filter = filter | {'rf_id__isnull': True}
+                    elif field == 'lichess_account':
+                        if data[field][-1] == FilterListForm.LichessChoises.CONFIRMED:
+                            filter = filter | {'lichess_token__contains': 'li'}
+                        else:
+                            exclude = exclude | {'lichess_token__contains': 'li'}
+
+        queryset = self.model.objects.filter(**filter).order_by('place')
+        if exclude:
+            queryset = queryset.exclude(**exclude)
+        return queryset
+
+    def get_context_data(self, *args, **kwargs):
+        new_context = dict(base_link_appendix='', login_form = login_form)
+        if self.request.GET:
+            data = dict(self.request.GET)
+            self.initial = data
+            if 'states' in data.keys():
+                new_context[
+                    'base_link_appendix'] = f"states={data['states'][-1].replace(' ', '+')}&rating={data['rating'][-1].replace(' ', '+')}&lichess_account={data['lichess_account'][-1].replace(' ', '+')}"
+
+        return super().get_context_data(*args, **kwargs) | new_context
+
+class RangedListViewFiltered(ListView):
+    model = CustomUser
+    template_name = 'competition/list.html'
+    context_object_name = 'users'
+    paginate_by = 20
 
     def get_queryset(self):
         return self.model.objects.filter(is_banned=False, is_active=True, not_plaing=False).order_by('place')
-
     def get_context_data(self, *args, **kwargs):
         return super().get_context_data(*args, **kwargs)|{'login_form': login_form}
+
+
 
 
 
@@ -320,9 +372,7 @@ def confirm(request, user_id):
             # print(event)
             Activity.objects.create(**event)
             user.email_user(subject=f"Изменение статуса заявки", message=f"Поздравляем, ваша заявка была одобрена!"
-                                                                         f"Проверьте свой аккаунт на lichess.org (https://lichess.org/@/{user.lichess_nick})."
-                                                                         f"Если система не добавила вас в клуб (https://lichess.org/team/KZOBTBjG) автоматически, подайте, пожалуйста заявку самостоятельно."
-                                                                         f"Пароль - ObninskForever")
+                                                                         f"Проверьте свой аккаунт на lichess.org (https://lichess.org/@/{user.lichess_nick}).")
             if user.has_valid_token():
                 token = user.lichess_token
                 try:
@@ -337,9 +387,24 @@ def confirm(request, user_id):
                         master_session = berserk.TokenSession(LICHESS_DATA['master_token'])
                         joined_res = master_session.post(
                             f'https://lichess.org/api/team/{LICHESS_DATA["team_id"]}/request/{user.lichess_nick.lower()}/accept')
-                        if joined_res.status_code == 200:
-                            return join_swiss(request, 0)
-                        return join_swiss(request, 0)
+                        try:
+                            client = utils.BetterSwiss(session=session)
+                            res = [client.join(swiss) for swiss in LICHESS_DATA['swiss_ids']]
+                            if res[0]['ok'] or res[1]['ok'] or res[2]['ok'] or res[3]['ok'] :
+                                event = {
+                                    'heading': 'Участник присоединился к турниру',
+                                    'content': user.get_full_name() + ' Включился в борьбу',
+                                    'type': Activity.Types.PROMOTED,
+                                    'user': user
+                                }
+                    
+                                Activity.objects.create(**event)
+                                user.state = user.States.ACTIVE
+                                user.save()
+                        except:
+                            return HttpResponse(
+                                'Ошибка добавления в Турниры. Попробуйсте снова. Если проблема не исчезнет, обратитесь в техподдержку')
+                        return redirect('profile', user.pk)
                 except:
                     return HttpResponse(
                         'Ошибка добавления в клуб. Попробуйсте снова. Если проблема не исчезнет, обратитесь в техподдержку')
@@ -403,7 +468,7 @@ def lichess_auth(request):
                 f'техпоодержку и сообщите следующие данные:<br> {user=}<br>{request=}<br> {token=}<br> {session=}<br> {client=}'))
         else:
             event = {
-                'heading': 'Участник подтвердил аккаунт liches.org',
+                'heading': 'Участник подтвердил аккаунт lichess.org',
                 'content': user.get_full_name() + ' Подтвердил свой аккаунт и статус участника отборочного этапа. ',
                 'type': Activity.Types.PROMOTED,
                 'user': user
@@ -456,7 +521,7 @@ def join_team(request):
                 raise Exception
     except:
         return HttpResponse(
-            'Ошибка добавления в клуб. Попробуйсте снова. Если проблема не исчезнет, обратитесь в техподдержку')
+            'Ошибка добавления в клуб. Попробуйте снова. Если проблема не исчезнет, обратитесь в техподдержку')
 
     return redirect('profile', user.pk)
 

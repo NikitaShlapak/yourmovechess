@@ -229,8 +229,8 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
         return reverse('profile', kwargs={'user_id': self.pk})
 
     def get_max_rating(self):
-        return max(self.rating_standart_ru, self.rating_rapid_ru, self.rating_blitz_ru,
-                   self.rating_standart, self.rating_rapid, self.rating_blitz)
+        return int(max(self.rating_standart_ru, self.rating_rapid_ru, self.rating_blitz_ru,
+                   self.rating_standart, self.rating_rapid, self.rating_blitz))
 
     def is_unrated(self):
         if any((self.rating_standart_ru, self.rating_rapid_ru, self.rating_blitz_ru,

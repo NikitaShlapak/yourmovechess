@@ -5,84 +5,126 @@
 
 {% block content %}
 
+<div class="row px-3">
+{% if request.user.is_superuser %}
+    <div class="col-lg-3 col-12 py-2 sticky-top">
+        <div class="">
+            <div class="card ">
 
-<div class="container py-3">
+                <form action="{% url 'list' %}" method="get">
+                    <div class="card-header">Фильтровать списки</div>
+                    <div class="card-body">
 
-    {% if page_obj %}
-    <div class="w-100 mb-3">
-        <div class="w-50 text-center p-0 m-0">
+                     {% for f in form %}
 
-          <p class="m-1">Страница {{ page_obj.number }} из {{ page_obj.paginator.num_pages }}</p>
+                            <div class="input-group mb-3">
+                              <span class="input-group-text text-center {% if f.label == 'Статус' %} w-100 {% else %} w-25{% endif %}">
+                                      <label for="{{ f.id_for_label }}" class="form-label text-center">{{ f.label }}</label>
+                              </span>
 
+                              {{ f }}
+
+                            </div>
+
+
+                    {% endfor %}
+                    </div>
+                    <div class="card-footer px-4">
+                        <button type="submit" class="btn btn-outline-primary w-100  mb-2">Применить фильтры</button>
+                        <a href="{% url 'list' %}" class="btn btn-outline-secondary w-100 ">Сбросить фильтры</a>
+                    </div>
+                </form>
+            </div>
         </div>
-          {% include 'competition/fragments/paginator.html' %}
     </div>
     {% endif %}
+    <div class="container col py-3">
+        {% if page_obj %}
+        <div class="w-100 mb-3">
+            <div class="w-50 text-center p-0 m-0">
 
-    <table class="table table-primary table-bordered table-hover">
-        <thead>
-            <tr>
-                <th class="align-middle text text-end" scope="col">№</th>
-                <th class="align-middle" scope="col">ФИО</th>
-                <th class="align-middle text text-center" scope="col">Lichess</th>
-                <th class="align-middle text text-center" scope="col">Статус</th>
-                {% if request.user.is_superuser or request.user.is_staff %}
-                <th class="align-middle text text-center">Подтвердить</th>
-                <th class="align-middle text text-center">Дисквалифицировать</th>
-                {% endif %}
-            </tr>
-        </thead>
-        <tbody class="table-group-divider">
-        {% for user in users %}
+              <p class="m-1 fs-3">Страница {{ page_obj.number }} из {{ page_obj.paginator.num_pages }}</p>
 
+            </div>
+              {% include 'competition/fragments/paginator.html' %}
+        </div>
+        {% endif %}
+
+        <table class="table table-primary table-bordered table-hover">
+            <thead>
                 <tr>
-                    <th class="align-middle text text-end">{{ user.place }}</th>
-                    <td class="align-middle"><a href="{% url 'profile' user.id %}" class="text-decoration-none text text-dark"><div class="w-100 {% if user.get_max_rating >= 2300 %} text-danger {% endif %} ">{{ user.get_full_name }}</div> </a>
-                        {% if user.rf_id %}
-                      <span class="d-inline-block" data-bs-toggle="tooltip" style="border-radius:12px;height:24px"
-                                                          data-bs-title="Рейтинг подтверждён через сайт ФШР">
-                          <img src="{% static 'yes.svg' %}" width="24" alt="123" class="position-relative start-50 top-50 translate-middle">
-                      </span>
-                      {% endif %}
-                    </td>
-                    <td class="align-middle"><div class="d-flex justify-content-center"><a href="https://lichess.org/@/{{ user.lichess_nick }}" class="text-decoration-none text text-dark"><div class="w-100">{{ user.lichess_nick }}</div> </a>
-                        {% if user.has_valid_token %}
-                      <span class="d-inline-block" data-bs-toggle="tooltip" style="border-radius:12px;height:24px"
-                                                          data-bs-title="Учётная запись lichess.org подтверждена">
-                          <img src="{% static 'yes.svg' %}" width="24" alt="123" class="position-relative start-50 top-50 translate-middle">
-                      </span>
-                      {% endif %}
-                        </div>
-                    </td>
-                    <td class="align-middle text text-center">{{ user.state }}</td>
+                    <th class="align-middle text text-end" scope="col">№</th>
+                    <th class="align-middle" scope="col">ФИО</th>
+                    <th class="align-middle text text-center" scope="col">Lichess</th>
+                    <th class="align-middle text text-center" scope="col">Статус</th>
                     {% if request.user.is_superuser or request.user.is_staff %}
-                     <td class="align-middle text text-center">
-                         {% if user.state == user.States.UNCONFIRMED %}
-                         <a href="#" role="button" class="btn btn-outline-success round"
-                                                         data-bs-toggle="modal" data-bs-target="#ConfirmModal{{ user.id }}">
-                             <div class="round position-relative start-50 top-50 translate-middle">
-                                 <img src="{% static 'yes.svg' %}" class="w-100 position-relative top-50 translate-middle-y" alt="123">
-                             </div>
-                         </a>
-                         {% endif %}
-                     </td>
-                     <td class="align-middle text text-center">
-                         <a href="#" role="button" class="btn btn-outline-danger round"
-                                                        data-bs-toggle="modal" data-bs-target="#BanModal{{ user.id }}">
-                             <div class="round position-relative start-50 top-50 translate-middle" >
-                                 <img src="{% static 'no.svg' %}" class="w-100 position-relative top-50 translate-middle-y" alt="">
-                             </div>
-                         </a>
-                     </td>
-
+                    <th class="align-middle text text-center">Подтвердить</th>
+                    <th class="align-middle text text-center">Дисквалифицировать</th>
                     {% endif %}
+                </tr>
+            </thead>
+            <tbody class="table-group-divider">
+            {% for user in users %}
 
-           </tr>
-        {% endfor %}
-        </tbody>
-    </table>
+                    <tr>
+                        <th class="align-middle text text-end">{{ user.place }}</th>
+                        <td class="align-middle"><div class="d-flex justify-content-start"><a href="{% url 'profile' user.id %}" class="text-decoration-none text text-dark"><div class="w-100 {% if user.get_max_rating > 2300 %} text-danger {% endif %}">{{ user.get_full_name }}</div> </a>
+                            {% if user.rf_id %}
+                          <span class="d-inline-block" data-bs-toggle="tooltip" style="border-radius:12px;height:24px"
+                                                              data-bs-title="Рейтинг подтверждён через сайт ФШР">
+                              <img src="{% static 'yes.svg' %}" width="24" alt="123" class="position-relative start-50 top-50 translate-middle">
+                          </span>
+                          {% endif %}
+                        </div>
+                        </td>
+                        <td class="align-middle"><div class="d-flex justify-content-center"><a href="https://lichess.org/@/{{ user.lichess_nick }}" class="text-decoration-none text text-dark"><div class="w-100">{{ user.lichess_nick }}</div> </a>
+                            {% if user.has_valid_token %}
+                          <span class="d-inline-block" data-bs-toggle="tooltip" style="border-radius:12px;height:24px"
+                                                              data-bs-title="Учётная запись lichess.org подтверждена">
+                              <img src="{% static 'yes.svg' %}" width="24" alt="123" class="position-relative start-50 top-50 translate-middle">
+                          </span>
+                          {% endif %}
+                            </div>
+                        </td>
+                        <td class="align-middle text text-center">{{ user.state }}</td>
+                        {% if request.user.is_superuser or request.user.is_staff %}
+                         <td class="align-middle text text-center">
+                             {% if user.state == user.States.UNCONFIRMED %}
+                             <a href="#" role="button" class="btn btn-outline-success round"
+                                                             data-bs-toggle="modal" data-bs-target="#ConfirmModal{{ user.id }}">
+                                 <div class="round position-relative start-50 top-50 translate-middle">
+                                     <img src="{% static 'yes.svg' %}" class="w-100 position-relative top-50 translate-middle-y" alt="123">
+                                 </div>
+                             </a>
+                             {% endif %}
+                         </td>
+                         <td class="align-middle text text-center">
+                             <a href="#" role="button" class="btn btn-outline-danger round"
+                                                            data-bs-toggle="modal" data-bs-target="#BanModal{{ user.id }}">
+                                 <div class="round position-relative start-50 top-50 translate-middle" >
+                                     <img src="{% static 'no.svg' %}" class="w-100 position-relative top-50 translate-middle-y" alt="">
+                                 </div>
+                             </a>
+                         </td>
+
+                        {% endif %}
+
+               </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+         {% if page_obj %}
+        <div class="w-100 mb-3">
+            <div class="w-50 text-center p-0 m-0">
+
+              <p class="m-1 fs-3">Страница {{ page_obj.number }} из {{ page_obj.paginator.num_pages }}</p>
+
+            </div>
+              {% include 'competition/fragments/paginator.html' %}
+        </div>
+        {% endif %}
+    </div>
 </div>
-
 {% if request.user.is_superuser %}
 
 {% for user in users %}

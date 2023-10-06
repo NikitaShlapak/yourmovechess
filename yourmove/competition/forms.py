@@ -72,3 +72,35 @@ class BanForm(forms.Form):
                                            'class': 'form-check-input'}
                                    ),
                                    required=False)
+
+class FilterListForm(forms.Form):
+    class StateChoises(models.TextChoices):
+        ANY = 'Не важно', 'Не важно'
+        REJECTED = 'Отклонено', 'Заявка отклонена'                                  #50
+        UNCONFIRMED = 'На проверке', 'Проверка не окончена'                         #150
+
+        CONFIRMED = 'Проверка пройдена', 'Участник допущен к отборочному этапу'     #250
+
+        ACTIVE = 'Отборочный этап', 'Участник принимает участие в отборочных турнирах'                      #350
+        PASSED =  'Отборочный этап (Завершён)','Участник принял участие в отборочных турнирах'
+
+        FINAL_ACCEED = 'Финал', 'Участник допущен к финалу'                      #750
+        FINAL = 'Финал (завершён)', 'Участник завершил фмнальный этап'                    #850
+
+        SUPERFINAL = 'Суперфинал', 'Участник приглашён на очный суперфинал'         #950
+    class RatingChoises(models.TextChoices):
+        ANY = 'Не важно', 'Не важно'
+        CONFIRMED = 'Рейтинг подтверждён', 'Рейтинг подтверждён'
+        UNCONFIRMED = 'Рейтинг не подтверждён','Рейтинг не подтверждён'
+
+    class LichessChoises(models.TextChoices):
+        ANY = 'Не важно', 'Не важно'
+        CONFIRMED = 'Аккаунт прикреплён','Аккаунт прикреплён'
+        UNCONFIRMED = 'Аккаунт не прикреплён','Аккаунт не прикреплён'
+
+    states = forms.ChoiceField(choices=StateChoises.choices, label='Статус')
+    rating = forms.ChoiceField(choices=RatingChoises.choices, label='Рейтинг')
+    lichess_account = forms.ChoiceField(choices=LichessChoises.choices, label='Аккаунт')
+
+
+
