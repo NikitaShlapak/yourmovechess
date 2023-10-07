@@ -7,6 +7,7 @@ from django.core.validators import RegexValidator
 from django.urls import reverse
 
 from competition.hashers import *
+from competition.utils.http_utils import update_with_rcf
 
 
 class UserManager(BaseUserManager):
@@ -118,7 +119,7 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
         PASSED =  'Отборочный этап (Завершён)','Участник принял участие в отборочных турнирах'
 
         FINAL_ACCEED = 'Финал', 'Участник допущен к финалу'                      #750
-        FINAL = 'Финал (завершён)', 'Участник завершил фмнальный этап'                    #850
+        FINAL = 'Финал (завершён)', 'Участник завершил финальный этап'                    #850
 
         SUPERFINAL = 'Суперфинал', 'Участник приглашён на очный суперфинал'         #950
 
@@ -129,11 +130,11 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
         F = 'Female', 'Женский'
 
     gender = models.TextField(choices=Gender.choices, verbose_name='Пол', default=Gender.M)
-    place = models.IntegerField(default=0)
-    res1 = models.FloatField(default=0.)
-    res2 = models.FloatField(default=0)
-    tb1 = models.FloatField(default=0)
-    tb2 = models.FloatField(default=0)
+    place = models.IntegerField(default=0, verbose_name="Место", help_text="Текущее место участника в общих списках")
+    res1 = models.FloatField(default=0, verbose_name="Результат первого этапа")
+    res2 = models.FloatField(default=0, verbose_name="Результат второго этапа")
+    tb1 = models.FloatField(default=0, verbose_name="Бухгольц первого этапа")
+    tb2 = models.FloatField(default=0, verbose_name="Бухгольц второго этапа")
 
     in_extra_comp = models.BooleanField(default=False, verbose_name='Хочу участвовать в конкурсе по шахматной композиции')
 
@@ -149,6 +150,50 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     USERNAME_FIELD = 'email'
 
     objects = UserManager()
+
+
+
+    def refresh_ratings_self(self):
+        if self.rf_id and int(self.rf_id) > 1:
+            updated, resp = update_with_rcf(self.rf_id)
+            if updated:
+                n_fields = 0
+                if resp.get('fide_id') and self.fide_id != resp['fide_id']:
+                    self.fide_id = resp['fide_id']
+                    n_fields += 1
+
+                if resp.get('rating_standart_ru'):
+                    self.rating_standart_ru = resp['rating_standart_ru']
+                    n_fields += 1
+
+                if resp.get('rating_rapid_ru'):
+                    self.rating_rapid_ru = resp['rating_rapid_ru']
+                    n_fields += 1
+
+                if resp.get('rating_blitz_ru'):
+                    self.rating_blitz_ru = resp['rating_blitz_ru']
+                    n_fields += 1
+
+                if resp.get('rating_standart'):
+                    self.rating_standart = resp['rating_standart']
+                    n_fields += 1
+
+                if resp.get('rating_rapid'):
+                    self.rating_rapid = resp['rating_rapid']
+                    n_fields += 1
+
+                if resp.get('rating_blitz'):
+                    self.rating_blitz = resp['rating_blitz']
+                    n_fields += 1
+
+                try:
+                    self.save(update_fields=resp.keys())
+                except:
+                    return 0
+                else:
+                    return n_fields
+            else:
+                return 0
 
     def email_user(self, subject, message, from_email=None, **kwargs):
         """Send an email to this user."""

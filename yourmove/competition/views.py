@@ -3,11 +3,7 @@ import os
 
 import pkce
 import requests
-import berserk
-import lichess
-from berserk.clients import Teams
 
-from bs4 import BeautifulSoup as bs
 from django.contrib.auth import logout as django_logout, login
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.views import LoginView
@@ -15,19 +11,17 @@ from django.http import HttpResponse
 from django.shortcuts import render, redirect
 from django.urls import reverse_lazy
 from django.utils.safestring import mark_safe
-from django.views.generic import ListView, FormView
+from django.views.generic import ListView
 from django.views.generic.edit import FormMixin
 
-from competition import utils
 from competition.forms import *
 from competition.models import *
-from competition.utils import *
-
+from competition.utils.chess_utils import *
+from competition.utils.text_utils import format_string
 
 from yourmove.config import LICHESS_DATA, ALLOWED_HOSTS
 
-logging.basicConfig(level=logging.INFO, filename="logs/views.log",filemode="a",
-                    format="%(asctime)s %(levelname)s %(message)s")
+
 login_form = LogInForm()
 
 
@@ -97,9 +91,11 @@ def register_long(request):
         if form.is_valid():
             user = form.cleaned_data
             try:
+                last_user = CustomUser.objects.filter(is_banned=False, is_active=True, not_plaing=False).order_by('-place',).limit(1)
                 new_user = CustomUser.objects.create(**user)
                 new_user.set_password(new_user.password)
-                new_user.save(update_fields=['password', ])
+                new_user.place = last_user.place+1
+                new_user.save(update_fields=['password', 'place'])
                 if new_user.middle_name:
                     if new_user.middle_name.endswith('a'):
                         new_user.gender = CustomUser.Gender.F
@@ -140,8 +136,8 @@ def register_short(request):
             suc, resp = update_with_rcf(form.cleaned_data['rf_id'])
 
             if suc:
-
-                if resp['last_name'] == format_string(request.user.last_name) and resp['first_name'] == format_string(request.user.first_name):
+                print(resp['last_name'], format_string(request.user.last_name),  resp['first_name'], format_string(request.user.first_name))
+                if format_string(resp['last_name']) == format_string(request.user.last_name) and format_string(resp['first_name']) == format_string(request.user.first_name):
                     user = CustomUser.objects.get(email=request.user.email)
 
                     user.rf_id = resp['rf_id']
@@ -193,60 +189,6 @@ def logout(request):
     return redirect('login')
 
 
-def update_with_rcf(id):
-    try:
-        r = requests.get('https://ratings.ruchess.ru/people/' + str(id))
-        if r.status_code != 200 : raise Exception
-        html = bs(r.content, 'html.parser')
-        items = html.select("li.list-group-item > b")
-        captions = html.select("li.list-group-item > strong > span")
-        name_full = str(html.select("div.page-header > h1")[0])
-        strs = html.select("li.list-group-item > span")
-
-        name_full = name_full[1 + name_full.find('>'):name_full[1:].find('<')].replace('\n', '')
-        name_full = format_string(name_full)
-        name_arr = name_full.split(' ', maxsplit=2)
-
-        caps = []
-        for el in captions:
-            caps.append(
-                el.text.replace(':', '').replace('Классические', 'rating_standart_ru').replace('Быстрые',
-                                                                                               'rating_rapid_ru').replace(
-                    'Блиц', 'rating_blitz_ru'))
-
-        nums = []
-        for el in items:
-            nums.append(el.text)
-
-        ratings = {caps[i]: nums[3 * i] for i in range(len(caps))}
-
-        if len(strs):
-            fide_id = html.select_one("li.list-group-item > a").text
-            for el in strs:
-                rt = el.text.split(':')
-                rtl = ''
-                if rt[0] == 'std':
-                    rtl = 'rating_standart'
-                elif rt[0] == 'rpd':
-                    rtl = 'rating_rapid'
-                elif rt[0] == 'blz':
-                    rtl = 'rating_blitz'
-                ratings[rtl] = rt[1]
-
-        r_max = ['None:', 0]
-        for r_type in ratings:
-            if int(ratings[r_type]) > r_max[1]:
-                r_max = [r_type, int(ratings[r_type])]
-
-        data = ratings
-        data['rf_id'] = id
-        data['last_name'] = name_arr[0].replace(' ', '').capitalize()
-        data['first_name'] = name_arr[1].replace(' ', '').capitalize()
-        data['middle_name'] = name_arr[2].replace(' ', '').capitalize()
-        if len(strs): data['fide_id'] = fide_id
-        return True, data
-    except:
-        return False, 'Игрок с таким ФШР id не найден '
 
 
 
@@ -297,19 +239,6 @@ class RangedListView(FormMixin,ListView):
                     'base_link_appendix'] = f"states={data['states'][-1].replace(' ', '+')}&rating={data['rating'][-1].replace(' ', '+')}&lichess_account={data['lichess_account'][-1].replace(' ', '+')}"
 
         return super().get_context_data(*args, **kwargs) | new_context
-
-class RangedListViewFiltered(ListView):
-    model = CustomUser
-    template_name = 'competition/list.html'
-    context_object_name = 'users'
-    paginate_by = 20
-
-    def get_queryset(self):
-        return self.model.objects.filter(is_banned=False, is_active=True, not_plaing=False).order_by('place')
-    def get_context_data(self, *args, **kwargs):
-        return super().get_context_data(*args, **kwargs)|{'login_form': login_form}
-
-
 
 
 
@@ -377,7 +306,7 @@ def confirm(request, user_id):
                 token = user.lichess_token
                 try:
                     session = berserk.TokenSession(token)
-                    client = utils.BetterTeam(session=session)
+                    client = BetterTeam(session=session)
 
                     message = '12345' * 7
                     password = LICHESS_DATA['team_password']
@@ -388,9 +317,14 @@ def confirm(request, user_id):
                         joined_res = master_session.post(
                             f'https://lichess.org/api/team/{LICHESS_DATA["team_id"]}/request/{user.lichess_nick.lower()}/accept')
                         try:
-                            client = utils.BetterSwiss(session=session)
-                            res = [client.join(swiss) for swiss in LICHESS_DATA['swiss_ids']]
-                            if res[0]['ok'] or res[1]['ok'] or res[2]['ok'] or res[3]['ok'] :
+                            client = BetterSwiss(session=session)
+                            res = []
+                            for swiss in LICHESS_DATA['swiss_ids']:
+                                try:
+                                    res.append(client.join(swiss)['ok'])
+                                except:
+                                    print(f'Unable to join user {user} to {swiss=}')
+                            if any(res):
                                 event = {
                                     'heading': 'Участник присоединился к турниру',
                                     'content': user.get_full_name() + ' Включился в борьбу',
@@ -401,6 +335,8 @@ def confirm(request, user_id):
                                 Activity.objects.create(**event)
                                 user.state = user.States.ACTIVE
                                 user.save()
+                            else:
+                                raise Exception
                         except:
                             return HttpResponse(
                                 'Ошибка добавления в Турниры. Попробуйсте снова. Если проблема не исчезнет, обратитесь в техподдержку')
@@ -506,7 +442,7 @@ def join_team(request):
     token = user.lichess_token
     try:
         session = berserk.TokenSession(token)
-        client = utils.BetterTeam(session=session)
+        client = BetterTeam(session=session)
 
         message = '12345' * 7
         password = LICHESS_DATA['team_password']
@@ -531,7 +467,7 @@ def join_swiss(request, swiss_num):
     token = user.lichess_token
     try:
         session = berserk.TokenSession(token)
-        client = utils.BetterSwiss(session=session)
+        client = BetterSwiss(session=session)
 
         res = [client.join(swiss) for swiss in LICHESS_DATA['swiss_ids']]
 
@@ -550,6 +486,7 @@ def join_swiss(request, swiss_num):
         return HttpResponse(
             'Ошибка добавления в Турниры. Попробуйсте снова. Если проблема не исчезнет, обратитесь в техподдержку')
     return redirect('profile', user.pk)
+
 
 
 def board(request):

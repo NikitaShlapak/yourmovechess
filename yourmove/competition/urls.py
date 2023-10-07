@@ -16,6 +16,7 @@ urlpatterns = [
     # path('api', api_test, name='api_test'),
     path('join_team', join_team, name='join_team'),
     path('join_swiss/<int:swiss_num>', join_swiss, name='join_swiss'),
-    path('board',board, name='board')
+    path('board',board, name='board'),
+
 
 ]

@@ -24,7 +24,6 @@ class BetterSwiss(berserk.clients.BaseClient):
         if password:
             data['password'] = password
         path = f'api/swiss/{swiss_id}/join'
-        print(path)
         return self._r.post(path, data=data)
 
 
@@ -33,5 +32,6 @@ class DataMixin:
         context = kwargs
         return context
 
-def format_string(string):
-    return string.lower().replace('ё','е')
+
+
+
