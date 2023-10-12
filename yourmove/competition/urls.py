@@ -1,4 +1,6 @@
 from django.urls import path
+
+from .password_reset_views import PasswordResetInitialView, PasswordResetConfirmView, PasswordResetInfoView
 from .views import *
 
 urlpatterns = [
@@ -18,5 +20,8 @@ urlpatterns = [
     path('join_swiss/<int:swiss_num>', join_swiss, name='join_swiss'),
     path('board',board, name='board'),
 
+    path('password_reset/request', PasswordResetInitialView.as_view(), name='reset_password_init'),
+    path('password_reset/confirm', PasswordResetConfirmView.as_view(), name='reset_password_confirm'),
+    path('password_reset_done/<str:action>', PasswordResetInfoView.as_view(), name='reset_password_done')
 
 ]

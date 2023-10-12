@@ -102,5 +102,12 @@ class FilterListForm(forms.Form):
     rating = forms.ChoiceField(choices=RatingChoises.choices, label='Рейтинг')
     lichess_account = forms.ChoiceField(choices=LichessChoises.choices, label='Аккаунт')
 
+class PasswordResetInitForm(forms.Form):
+    email = forms.EmailField(label='Почта', help_text='На этот адрес будет выслана ссылка для смены пароля.')
+
+class PasswordResetForm(forms.Form):
+    password_1 = forms.CharField(label='Новый пароль', widget=forms.PasswordInput())
+    password_2 = forms.CharField(label='Повтор пароля', widget=forms.PasswordInput())
+
 
 

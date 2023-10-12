@@ -87,7 +87,12 @@ class ActivityAdmin(admin.ModelAdmin):
     list_display_links = ('date','user')
     search_fields = ('date', 'type', 'user', 'content')
 
+class PasswordResetModelAdmin(admin.ModelAdmin):
+    list_display_links = list_display = ('user', 'created', 'code')
+    search_fields = ('user__email', 'user__lichess_nick', 'user__first_name', 'user__last_name')
 
+
+admin.site.register(PasswordResetModel, PasswordResetModelAdmin)
 admin.site.register(CustomUser, CustomUserAdmin)
 admin.site.register(Activity, ActivityAdmin)
 

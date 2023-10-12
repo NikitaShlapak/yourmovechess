@@ -5,8 +5,9 @@ from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
 from django.core.validators import RegexValidator
 from django.urls import reverse
+from django.utils.safestring import mark_safe
 
-from competition.hashers import *
+from competition.hashers import PBKDF2WrappedSHA1PasswordHasher
 from competition.utils.http_utils import update_with_rcf
 
 
@@ -130,7 +131,7 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
         F = 'Female', 'Женский'
 
     gender = models.TextField(choices=Gender.choices, verbose_name='Пол', default=Gender.M)
-    place = models.IntegerField(default=0, verbose_name="Место", help_text="Текущее место участника в общих списках")
+    place = models.IntegerField(default=1000, verbose_name="Место", help_text="Текущее место участника в общих списках")
     res1 = models.FloatField(default=0, verbose_name="Результат первого этапа")
     res2 = models.FloatField(default=0, verbose_name="Результат второго этапа")
     tb1 = models.FloatField(default=0, verbose_name="Бухгольц первого этапа")
@@ -320,3 +321,12 @@ class Activity(models.Model):
         verbose_name = 'Событие'
         verbose_name_plural = 'События'
         ordering = ['date']
+
+class PasswordResetModel(models.Model):
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, verbose_name='Пользователь')
+    created = models.DateTimeField(auto_now_add=True, verbose_name='Дата и время создания',
+                                   help_text='Ссылка действительна в течение одного часа с момента создания.')
+    code = models.TextField(verbose_name='Код сброса пароля')
+
+    def __str__(self):
+        return f"Объект сброса пароля пользователя {self.user} (создан {self.created.date()} в {self.created.time()})"

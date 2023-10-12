@@ -10,7 +10,6 @@ from django.contrib.auth.views import LoginView
 from django.http import HttpResponse
 from django.shortcuts import render, redirect
 from django.urls import reverse_lazy
-from django.utils.safestring import mark_safe
 from django.views.generic import ListView
 from django.views.generic.edit import FormMixin
 
@@ -91,11 +90,9 @@ def register_long(request):
         if form.is_valid():
             user = form.cleaned_data
             try:
-                last_user = CustomUser.objects.filter(is_banned=False, is_active=True, not_plaing=False).order_by('-place',).limit(1)
                 new_user = CustomUser.objects.create(**user)
                 new_user.set_password(new_user.password)
-                new_user.place = last_user.place+1
-                new_user.save(update_fields=['password', 'place'])
+                new_user.save(update_fields=['password'])
                 if new_user.middle_name:
                     if new_user.middle_name.endswith('a'):
                         new_user.gender = CustomUser.Gender.F
@@ -126,7 +123,7 @@ def register_long(request):
                 return redirect('register_short')
     else:
         form = FullRegisterForm()
-    return render(request, 'competition/register.html', context={'form': form})
+    return render(request, 'competition/auth/register.html', context={'form': form})
 
 
 def register_short(request):
@@ -173,12 +170,12 @@ def register_short(request):
                 form.add_error(None, resp)
     else:
         form = RegByIDForm()
-    return render(request, 'competition/short_register.html', context={'form': form, 'login_form': login_form})
+    return render(request, 'competition/auth/short_register.html', context={'form': form, 'login_form': login_form})
 
 
 class LoginUser(LoginView):
     form_class = LogInForm
-    template_name = 'competition/login.html'
+    template_name = 'competition/auth/login.html'
 
     def get_success_url(self):
         return reverse_lazy('main')
@@ -384,7 +381,7 @@ def lichess_auth(request):
             token = req.json()['access_token']
         except:
             return HttpResponse(
-                'Ошибка получения токена. Попробуйсте снова. Если проблема не исчезнет, обратитесь в техпоодержку')
+                'Ошибка получения токена. Попробуйте снова. Если проблема не исчезнет, обратитесь в техподдержку')
         else:
             logging.info(f"Successfully created token. User - {request.user}. Saving...")
 
@@ -469,9 +466,13 @@ def join_swiss(request, swiss_num):
         session = berserk.TokenSession(token)
         client = BetterSwiss(session=session)
 
-        res = [client.join(swiss) for swiss in LICHESS_DATA['swiss_ids']]
-
-        if res[0]['ok'] or res[1]['ok'] or res[2]['ok'] or res[3]['ok'] :
+        res = []
+        for swiss in LICHESS_DATA['swiss_ids']:
+            try:
+                res.append(client.join(swiss)['ok'])
+            except:
+                print(f'Unable to join user {user} to {swiss=}')
+        if any(res):
             event = {
                 'heading': 'Участник присоединился к турниру',
                 'content': user.get_full_name() + ' Включился в борьбу',
@@ -486,6 +487,8 @@ def join_swiss(request, swiss_num):
         return HttpResponse(
             'Ошибка добавления в Турниры. Попробуйсте снова. Если проблема не исчезнет, обратитесь в техподдержку')
     return redirect('profile', user.pk)
+
+
 
 
 

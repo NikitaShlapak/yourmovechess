@@ -20,12 +20,14 @@ class Command(BaseCommand):
                 results.append(json.loads(s=line))
 
             for user_result in results:
+                print(f"Looking for {user_result['username']}.")
                 try:
                     user = CustomUser.objects.get(is_banned=False, state = CustomUser.States.ACTIVE, lichess_nick=user_result['username'])
                 except CustomUser.DoesNotExist:
                     print(f"User {user_result['username']} not found")
+                except CustomUser.MultipleObjectsReturned:
+                    print(f"Found more then 1 user with nick {user_result['username']}")
                 else:
-                    # print(user,user_result)
                     if not n//2:
                         if user.res1 < user_result['points']:
                             user.res1 = user_result['points']
