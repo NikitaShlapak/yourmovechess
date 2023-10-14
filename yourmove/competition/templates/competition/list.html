@@ -6,44 +6,69 @@
 {% block content %}
 
 <div class="row px-3">
-{% if request.user.is_superuser %}
-    <div class="col-lg-3 col-12 py-2 sticky-top">
+
+    <div class="col-lg-3 col-12 py-2 ">
         <div class="">
-            <div class="card ">
-
-                <form action="{% url 'list' %}" method="get">
-                    <div class="card-header">Фильтровать списки</div>
+            <div class="card">
+                <div class="card-header">
+                    <div class="row">
+                        <div class="col-auto">
+                            <h3>Поиск</h3>
+                        </div>
+                        <div class="col">
+                            <a href="{% url 'list' %}" class="btn btn-outline-secondary w-100 mt-1">Сбросить</a>
+                        </div>
+                    </div>
+                                        </div>
                     <div class="card-body">
-
-                     {% for f in form %}
-
-                            <div class="input-group mb-3">
-                              <span class="input-group-text text-center {% if f.label == 'Статус' %} w-100 {% else %} w-25{% endif %}">
-                                      <label for="{{ f.id_for_label }}" class="form-label text-center">{{ f.label }}</label>
-                              </span>
-
-                              {{ f }}
-
+                        <form action="{% url 'list' %}" method="get">
+                            <div class="input-group">
+                                <button class="btn btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">Страница</button>
+                                  <ul class="dropdown-menu">
+                                      {% for num in page_obj.paginator.page_range %}
+                                    <li><a class="dropdown-item" href="?{{ base_link_appendix }}&page={{num}}">{{num}}</a></li>
+                                      {% endfor %}
+                                  </ul>
+                              <input type="text" class="form-control border-primary" placeholder="Фамилия, имя или ник" name="search">
+                              <button class="btn btn-outline-primary" type="submit">Поиск</button>
                             </div>
+                            <a href="{% url 'list' %}?page={{ my_page }}" role="button" class="btn btn-outline-success my-2 w-100">Найти меня</a>
 
+                        </form>
+                    </div>
+                {% if request.user.is_superuser %}
+                   <hr>
+                <form action="{% url 'list' %}" method="get">
+                    <div class="card-body pt-0">
 
+                    <h3>Фильтровать</h3>
+                        {% for f in form %}
+
+                        <div class="input-group mb-3">
+                                  <span class="input-group-text text-center {% if f.label == 'Статус' %} w-100 {% else %} w-25{% endif %}">
+                                          <label for="{{ f.id_for_label }}" class="form-label text-center">{{ f.label }}</label>
+                                  </span>
+
+                            {{ f }}
+                        </div>
                     {% endfor %}
                     </div>
                     <div class="card-footer px-4">
-                        <button type="submit" class="btn btn-outline-primary w-100  mb-2">Применить фильтры</button>
-                        <a href="{% url 'list' %}" class="btn btn-outline-secondary w-100 ">Сбросить фильтры</a>
+                        <button type="submit" class="btn btn-outline-primary w-100  ">Применить фильтры</button>
                     </div>
                 </form>
+                 {% endif %}
             </div>
         </div>
     </div>
-    {% endif %}
-    <div class="container col py-3">
+
+    <div class="col py-2">
         {% if page_obj %}
         <div class="w-100 mb-3">
             <div class="w-50 text-center p-0 m-0">
 
-              <p class="m-1 fs-3">Страница {{ page_obj.number }} из {{ page_obj.paginator.num_pages }}</p>
+              <p class="m-1 fs-3">Страница {{ page_obj.number }} из {{ page_obj.paginator.num_pages }}
+
 
             </div>
               {% include 'competition/fragments/paginator.html' %}
@@ -121,7 +146,9 @@
         <div class="w-100 mb-3">
             <div class="w-50 text-center p-0 m-0">
 
-              <p class="m-1 fs-3">Страница {{ page_obj.number }} из {{ page_obj.paginator.num_pages }}</p>
+              <p class="m-1 fs-3">Страница {{ page_obj.number }} из {{ page_obj.paginator.num_pages }}
+                           {% if my_page %}   <a href="{% url 'list' %}?page={{ my_page }}" role="button" class="btn btn-outline-primary mx-5 px-3 fs-3 py-0 my-2">Найти меня</a> {% endif %}</p>
+              </p>
 
             </div>
               {% include 'competition/fragments/paginator.html' %}

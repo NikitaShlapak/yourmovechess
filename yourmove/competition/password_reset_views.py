@@ -38,7 +38,7 @@ class PasswordResetInitialView(DataMixin, FormView):
                 form.add_error(None,'Мы не смогли создать ссылку для сброса пароля. Попробуйте ещё раз позже. Если ситуация повторится - обратитесь в техподдержку.')
                 return self.render_to_response(self.get_context_data(form=form, action='init'))
             else:
-                link = f"{ALLOWED_HOSTS[-1]}password_reset/confirm?user={new_reset.user.email}&code={new_reset.code}"
+                link = f"{ALLOWED_HOSTS[-1]}/password_reset/confirm?user={new_reset.user.email}&code={new_reset.code}"
                 user.email_user(subject=f"Ход за тобой | Сброс пароля",
                                 message=f"Для вашего аккаунта был запрошен сброс пароля. Если это сделали не вы, то игнорируйте это письмо."
               f"Ссылка для сброса пароля: {link} ."

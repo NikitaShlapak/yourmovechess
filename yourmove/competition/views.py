@@ -7,6 +7,7 @@ import requests
 from django.contrib.auth import logout as django_logout, login
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.views import LoginView
+from django.db.models import Q
 from django.http import HttpResponse
 from django.shortcuts import render, redirect
 from django.urls import reverse_lazy
@@ -30,7 +31,7 @@ def page_not_found_view(request, exception):
 def index(request):
     return render(request, 'competition/index.html', context={'login_form': login_form})
 
-
+@login_required()
 def profile(request, user_id):
     user = CustomUser.objects.get(pk=user_id)
 
@@ -193,47 +194,65 @@ class RangedListView(FormMixin,ListView):
     model = CustomUser
     template_name = 'competition/list.html'
     context_object_name = 'users'
-    paginate_by = 20
+    paginate_by = 1
     form_class = FilterListForm
 
     def get_success_url(self):
         return reverse_lazy('list')
     def get_queryset(self):
         def_filter = dict(is_banned=False, is_active=True, not_plaing=False)
-        filter = def_filter | {}
+        queryset = self.model.objects.filter(**def_filter)
+        filter =  {}
         exclude = {}
         if self.request.GET:
-            data = dict(self.request.GET)
-            for field in data.keys():
+            print(self.request.GET.keys(), bool(self.request.GET.get('search')))
+            if not self.request.GET.get('search'):
+                data = dict(self.request.GET)
+                for field in data.keys():
 
-                if data[field][-1] != 'Не важно':
-                    if field == 'states':
-                        filter = filter | {'state':data[field][-1]}
-                    elif field == 'rating':
-                        print(data[field][-1], FilterListForm.RatingChoises.CONFIRMED, data[field][-1] == FilterListForm.RatingChoises.CONFIRMED)
-                        if data[field][-1] == FilterListForm.RatingChoises.CONFIRMED:
-                            filter = filter | {'rf_id__isnull':False}
-                        else:
-                            filter = filter | {'rf_id__isnull': True}
-                    elif field == 'lichess_account':
-                        if data[field][-1] == FilterListForm.LichessChoises.CONFIRMED:
-                            filter = filter | {'lichess_token__contains': 'li'}
-                        else:
-                            exclude = exclude | {'lichess_token__contains': 'li'}
+                    if data[field][-1] != 'Не важно':
+                        if field == 'states':
+                            filter = filter | {'state':data[field][-1]}
+                        elif field == 'rating':
+                            print(data[field][-1], FilterListForm.RatingChoises.CONFIRMED, data[field][-1] == FilterListForm.RatingChoises.CONFIRMED)
+                            if data[field][-1] == FilterListForm.RatingChoises.CONFIRMED:
+                                filter = filter | {'rf_id__isnull':False}
+                            else:
+                                filter = filter | {'rf_id__isnull': True}
+                        elif field == 'lichess_account':
+                            if data[field][-1] == FilterListForm.LichessChoises.CONFIRMED:
+                                filter = filter | {'lichess_token__contains': 'li'}
+                            else:
+                                exclude = exclude | {'lichess_token__contains': 'li'}
 
-        queryset = self.model.objects.filter(**filter).order_by('place')
-        if exclude:
-            queryset = queryset.exclude(**exclude)
-        return queryset
+                queryset = queryset.filter(**filter)
+                if exclude:
+                    queryset = queryset.exclude(**exclude)
+            else:
+                texts = self.request.GET['search'].split(' ')
+                cond = Q()
+                for text in texts:
+                    cond = cond | Q(first_name__icontains=text)
+                    cond = cond | Q(last_name__icontains=text)
+                    cond = cond | Q(middle_name__icontains=text)
+                    cond = cond | Q(lichess_nick__icontains=text)
+                queryset = self.model.objects.filter(cond)
+
+
+        return queryset.order_by('place')
 
     def get_context_data(self, *args, **kwargs):
         new_context = dict(base_link_appendix='', login_form = login_form)
+        if self.request.user.is_authenticated and (not self.request.user.is_banned):
+            if self.request.user.place < 1000:
+                new_context = new_context|dict(my_page= 1 + self.request.user.place//self.paginate_by)
         if self.request.GET:
             data = dict(self.request.GET)
+            if data.get('page'):
+                data.pop('page')
             self.initial = data
-            if 'states' in data.keys():
-                new_context[
-                    'base_link_appendix'] = f"states={data['states'][-1].replace(' ', '+')}&rating={data['rating'][-1].replace(' ', '+')}&lichess_account={data['lichess_account'][-1].replace(' ', '+')}"
+            data_list = [f"{key}={data[key]}".replace('[','').replace(']','').replace("'",'').replace(' ','+') for key in data.keys()]
+            new_context['base_link_appendix']='&'.join(data_list)
 
         return super().get_context_data(*args, **kwargs) | new_context
 
