@@ -136,6 +136,8 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     res2 = models.FloatField(default=0, verbose_name="Результат второго этапа")
     tb1 = models.FloatField(default=0, verbose_name="Бухгольц первого этапа")
     tb2 = models.FloatField(default=0, verbose_name="Бухгольц второго этапа")
+    resf = models.FloatField(default=0, verbose_name="Результат заочного финала")
+    tbf = models.FloatField(default=0, verbose_name="Бухгольц заочного финала")
 
     in_extra_comp = models.BooleanField(default=False, verbose_name='Хочу участвовать в конкурсе по шахматной композиции')
 

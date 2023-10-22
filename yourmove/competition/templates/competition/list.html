@@ -83,6 +83,7 @@
                     <th class="align-middle text text-center" scope="col">Lichess</th>
                     <th class="align-middle text text-center" scope="col">Этап 1</th>
                     <th class="align-middle text text-center" scope="col">Этап 2</th>
+                    <th class="align-middle text text-center" scope="col">Финал</th>
                     <th class="align-middle text text-center" scope="col">Статус</th>
                     {% if request.user.is_superuser or request.user.is_staff %}
                     <th class="align-middle text text-center">Подтвердить</th>
@@ -115,6 +116,7 @@
                         </td>
                         <td class="align-middle text text-center">{{ user.res1 }}({{user.tb1}})</td>
                         <td class="align-middle text text-center">{{ user.res2 }}({{user.tb2}})</td>
+                        <td class="align-middle text text-center">{{ user.resf }}({{user.tbf}})</td>
                         <td class="align-middle text text-center">{{ user.state }}</td>
                         {% if request.user.is_superuser or request.user.is_staff %}
                          <td class="align-middle text text-center">
