@@ -7,6 +7,7 @@ import requests
 from django.contrib.auth import logout as django_logout, login
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.views import LoginView
+from django.core.cache import cache
 from django.db.models import Q
 from django.http import HttpResponse
 from django.shortcuts import render, redirect
@@ -201,7 +202,11 @@ class RangedListView(FormMixin,ListView):
         return reverse_lazy('list')
     def get_queryset(self):
         def_filter = dict(is_banned=False, is_active=True, not_plaing=False)
-        queryset = self.model.objects.filter(**def_filter)
+        queryset = cache.get('list_queryset_unfiltered')
+        if not queryset:
+            queryset = self.model.objects.filter(**def_filter)
+            cache.set('list_queryset_unfiltered', queryset, 60*5)
+
         filter =  {}
         exclude = {}
         if self.request.GET:

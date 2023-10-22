@@ -36,7 +36,7 @@
                   <p class="card-text"><b>Дата рождения:</b> {{ user.b_date }}</p>
                   <p class="card-text"><b>Федеральный округ:</b> {{ user.region }}</p>
                   <p class="card-text"><b>Город: </b> {{ user.city }}</p>
-                  <p class="card-text"><b>Спортивный клуб:</b> {{ user.SSK }} <br><i>{{ user.university }}</i></p>
+                  {% if user.SSK  %}<p class="card-text"><b>Спортивный клуб:</b> {{ user.SSK }} <br><i>{{ user.university }}</i></p>{% endif %}
                   <p class="card-text"><b>Профиль на lichess.org: </b>
                       <a href="https://lichess.org/@/{{ user.lichess_nick }}" target="blank">{{ user.lichess_nick }}</a>
                       {% if user.has_valid_token %}

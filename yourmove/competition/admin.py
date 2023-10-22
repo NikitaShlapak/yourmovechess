@@ -4,11 +4,14 @@ from django.utils.translation import gettext_lazy as _
 
 
 class CustomUserAdmin(admin.ModelAdmin):
-    list_display = ('email', 'last_name', 'first_name', 'b_date', 'region', 'SSK', 'lichess_nick', 'rf_id', "state", 'is_banned')
+    list_display = ('place','email', 'last_name', 'first_name', 'b_date', 'region', 'SSK', 'lichess_nick', 'rf_id', "state", 'is_banned')
     list_display_links = ('email', 'last_name', "first_name")
-    search_fields = ('email', 'last_name', 'first_name', 'SSK', "lichess_nick")
+    search_fields = ('email', 'last_name', 'first_name')
+    sortable_by = ('place','email', 'last_name', 'first_name', 'b_date', 'SSK', 'lichess_nick', 'rf_id', "state", 'is_banned')
+    list_filter = ('region', 'state', 'gender','in_extra_comp')
     list_editable = ("state", 'is_banned','rf_id')
     readonly_fields = ('last_login', 'place', 'lichess_token')
+
 
     fieldsets = (
         ('Учётная запись', {"fields": ("email", "password"), }),

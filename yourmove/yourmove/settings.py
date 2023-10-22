@@ -20,7 +20,11 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-
+INTERNAL_IPS = [
+    # ...
+    "127.0.0.1",
+    # ...
+]
 
 # Application definition
 
@@ -34,6 +38,7 @@ INSTALLED_APPS = [
     'competition.apps.CompetitionConfig',
     "phonenumber_field",
     'oauth2_provider',
+    'debug_toolbar'
 ]
 
 MIDDLEWARE = [
@@ -44,6 +49,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    "debug_toolbar.middleware.DebugToolbarMiddleware",
 ]
 
 ROOT_URLCONF = 'yourmove.urls'
@@ -95,7 +101,12 @@ PASSWORD_HASHERS = [
 
 AUTH_USER_MODEL = 'competition.CustomUser'
 
-
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.db.DatabaseCache",
+        "LOCATION": "cache_table",
+    }
+}
 
 LANGUAGE_CODE = 'ru'
 
